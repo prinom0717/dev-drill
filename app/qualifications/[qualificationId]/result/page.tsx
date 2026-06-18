@@ -78,19 +78,26 @@ export default async function ResultPage({
         </div>
 
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            href={nextLink}
-            className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
-          >
-            {nextQuestionId ? "次の問題へ" : "資格ページへ戻る"}
-          </Link>
-          <Link
-            href={`/qualifications/${qualificationId}/history?userId=${dummyUserId}`}
-            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-amber-300 hover:text-amber-700"
-          >
-            履歴を見る
-          </Link>
-        </div>
+        <Link
+          href={nextLink}
+          className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
+        >
+          {nextQuestionId ? "次の問題へ" : "資格ページへ戻る"}
+        </Link>
+        {/* 解き直すボタンを追加 */}
+        <Link
+          href={`/qualifications/${qualificationId}/play?mode=review&questionId=${questionId}`}
+          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-amber-300 hover:text-amber-700"
+        >
+          この問題を解き直す
+        </Link>
+        <Link
+          href={`/qualifications/${qualificationId}/history?userId=${dummyUserId}`}
+          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-amber-300 hover:text-amber-700"
+        >
+          履歴を見る
+        </Link>
+      </div>
       </section>
     </main>
   );

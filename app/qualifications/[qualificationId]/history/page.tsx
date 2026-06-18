@@ -30,12 +30,21 @@ export default async function HistoryPage({
             <p className="mt-3 text-sm text-slate-600">ダミー user_id の解答履歴を確認できます。</p>
           </div>
 
-          <Link
-            href={`/qualifications/${qualificationId}/play?mode=random`}
-            className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
-          >
-            演習に戻る
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href={`/qualifications/${qualificationId}/play?mode=random`}
+              className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
+            >
+              演習に戻る
+            </Link>
+            {/* 不正解問題ボタンを追加 */}
+            <Link
+              href={`/qualifications/${qualificationId}/play?mode=mistakes`}
+              className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
+            >
+              不正解問題を解く
+            </Link>
+          </div>
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -93,6 +102,14 @@ export default async function HistoryPage({
                     <dd className="mt-2 text-sm text-slate-900">{new Date(entry.answeredAt).toLocaleString("ja-JP")}</dd>
                   </div>
                 </dl>
+                <div className="mt-4 flex gap-2">
+                  <Link
+                    href={`/qualifications/${qualificationId}/play?mode=review&questionId=${entry.questionId}`}
+                    className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-amber-300 hover:text-amber-700"
+                  >
+                    再挑戦
+                  </Link>
+                </div>
               </article>
             ))}
           </div>

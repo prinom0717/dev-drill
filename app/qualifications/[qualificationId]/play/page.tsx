@@ -3,8 +3,11 @@ import { notFound } from "next/navigation";
 
 import { QuizPlayClient } from "@/app/_components/quiz-play-client";
 import {
+  dummyUserId,
   getChapterById,
+  getHistory,  // 追加
   getQualificationById,
+  getQuestionById,  // 追加
   getQuestions,
 } from "@/lib/master-drill-store";
 
@@ -34,10 +37,55 @@ export default async function PlayPage({
     notFound();
   }
 
-  const mode = query.mode === "random" ? "random" : "chapter";
+  const mode = query.mode === "random" || query.mode === "mistakes" || query.mode === "review" ? query.mode : "chapter";
   const chapterId = Number(query.chapterId ?? query.chapter ?? "0");
   const questionIdsFromUrl = parseQuestionIds(query.questionIds);
-    const count = Number(query.count ?? "0");
+  const count = Number(query.count ?? "0");
+  const reviewQuestionId = Number(query.questionId ?? "0");
+
+  // 単一問題のレビューモード
+  if (mode === "review" && reviewQuestionId > 0) {
+    const reviewQuestion = getQuestionById(reviewQuestionId);
+    if (reviewQuestion) {
+      return (
+        <QuizPlayClient
+          qualificationId={qualificationId}
+          question={reviewQuestion}
+          questionIds={[reviewQuestionId]}
+          currentIndex={0}
+          mode="review"
+          chapterId={undefined}
+        />
+      );
+    }
+  }
+
+  // 不正解問題のみのモード
+  if (mode === "mistakes") {
+    const history = getHistory(dummyUserId);
+    const wrongAnswers = history
+      .filter((entry) => !entry.isCorrect && entry.question?.qualificationId === qualificationId)
+      .map((entry) => entry.questionId)
+      .filter((id, index, self) => self.indexOf(id) === index); // 重複を除去
+
+    if (wrongAnswers.length > 0) {
+      const mistakeQuestions = getQuestions({
+        qualificationId,
+      }).filter((question) => wrongAnswers.includes(question.id));
+
+      return (
+        <QuizPlayClient
+          qualificationId={qualificationId}
+          question={mistakeQuestions[0]}
+          questionIds={mistakeQuestions.map((q) => q.id)}
+          currentIndex={0}
+          mode="mistakes"
+          chapterId={undefined}
+        />
+      );
+    }
+  }
+
     const questions = getQuestions({
     qualificationId,
     chapterId: mode === "chapter" ? chapterId : undefined,
@@ -68,11 +116,13 @@ export default async function PlayPage({
               {qualification.name}
             </h1>
             <p className="mt-3 text-sm text-slate-600">
-              {mode === "random"
+              {mode === "mistakes"
+                ? `不正解問題 ${orderedQuestions.length} 問を復習`
+                : mode === "random"
                 ? `ランダム出題 ${orderedQuestions.length} 問を1問ずつ`
                 : chapter
-                  ? `${chapter.title} を1問ずつ解く`
-                  : "章別出題"}
+                ? `${chapter.title} を1問ずつ解く`
+                : "章別出題"}
             </p>
           </div>
 

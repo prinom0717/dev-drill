@@ -10,7 +10,7 @@ type Props = {
   question: Question;
   questionIds: number[];
   currentIndex: number;
-  mode: "chapter" | "random";
+  mode: "chapter" | "random" | "mistakes" | "review";
   chapterId?: number;
 };
 
