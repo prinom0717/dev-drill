@@ -1,4 +1,4 @@
-import { getQuestions } from "@/lib/master-drill-store";
+import { getQuestions, addQuestion, updateQuestion, deleteQuestion } from "@/lib/master-drill-store";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -15,4 +15,44 @@ export async function GET(request: Request) {
   });
 
   return Response.json({ questions });
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const question = addQuestion(body);
+    return Response.json({ ok: true, question });
+  } catch (err: any) {
+    return Response.json({ ok: false, message: err?.message ?? String(err) }, { status: 400 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const updated = updateQuestion(body);
+    if (!updated) return Response.json({ ok: false, message: "Question not found" }, { status: 404 });
+    return Response.json({ ok: true, question: updated });
+  } catch (err: any) {
+    return Response.json({ ok: false, message: err?.message ?? String(err) }, { status: 400 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const idParam = url.searchParams.get("id");
+    let id = idParam ? Number(idParam) : undefined;
+    if (!id) {
+      const body = await request.json();
+      id = Number(body?.id);
+    }
+
+    if (!id) return Response.json({ ok: false, message: "id required" }, { status: 400 });
+
+    const removed = deleteQuestion(id);
+    return Response.json({ ok: true, removed });
+  } catch (err: any) {
+    return Response.json({ ok: false, message: err?.message ?? String(err) }, { status: 400 });
+  }
 }

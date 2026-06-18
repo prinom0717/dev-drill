@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import HeaderClient from "./_components/header-client";
 import { Geist, Geist_Mono, Noto_Serif_JP } from "next/font/google";
 import "./globals.css";
 
@@ -63,25 +64,8 @@ export default function RootLayout({
                 <span className="text-base">学習アプリ</span>
               </span>
             </Link>
-            <div className="flex flex-1 flex-wrap items-center justify-end gap-2 text-sm font-semibold">
-              <Link
-                href="/#qualifications"
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-700 transition hover:border-amber-300 hover:text-amber-700"
-              >
-                資格一覧
-              </Link>
-              <Link
-                href="/qualifications/fe/history"
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-700 transition hover:border-amber-300 hover:text-amber-700"
-              >
-                履歴
-              </Link>
-              <Link
-                href="/"
-                className="rounded-full bg-amber-600 px-4 py-2 text-white transition hover:bg-amber-700"
-              >
-                ホーム
-              </Link>
+            <div className="flex flex-1 items-center justify-end">
+              <HeaderClient />
             </div>
           </div>
         </header>
