@@ -16,7 +16,7 @@ export default async function ResultPage({
 }) {
   const { qualificationId } = await params;
   const query = await searchParams;
-  const qualification = getQualificationById(qualificationId);
+  const qualification = await getQualificationById(qualificationId);
 
   if (!qualification) {
     notFound();
@@ -32,7 +32,7 @@ export default async function ResultPage({
         .map((value) => Number(value))
         .filter((value) => Number.isFinite(value) && value > 0)
     : [];
-  const question = getQuestionById(questionId);
+  const question = await getQuestionById(questionId);
 
   if (!question) {
     notFound();

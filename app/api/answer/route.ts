@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     return Response.json({ message: "questionId と userAnswer は必須です。" }, { status: 400 });
   }
 
-  const answer = recordAnswer({
+  const answer = await recordAnswer({
     userId: body.userId ?? dummyUserId,
     questionId: body.questionId,
     userAnswer: Number(body.userAnswer),

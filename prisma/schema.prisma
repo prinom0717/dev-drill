@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Exam {
+  id          Int           @id @default(autoincrement())
+  exam_name   String
+  description String?
+  created_at  DateTime      @default(now())
+  chapters    ExamChapter[]
+}
+
+model ExamChapter {
+  id             Int        @id @default(autoincrement())
+  exam_id        Int
+  chapter_number Int
+  chapter_title  String
+  coverage       String?
+  created_at     DateTime   @default(now())
+  exam           Exam       @relation(fields: [exam_id], references: [id], onDelete: Cascade)
+  questions      Question[]
+
+  @@index([exam_id])
+}
+
+model Question {
+  id            Int          @id @default(autoincrement())
+  chapter_id    Int
+  question_type QuestionType
+  question_text String
+  choices       Json
+  answer        Int
+  explanation   String?
+  difficulty    Int
+  created_at    DateTime     @default(now())
+  chapter       ExamChapter  @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
+  userAnswers   UserAnswer[]
+  userMarks     UserMark[]
+
+  @@index([chapter_id])
+}
+
+model UserAnswer {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  question_id Int
+  user_answer String?
+  is_correct  Boolean
+  answered_at DateTime @default(now())
+  question    Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([question_id])
+}
+
+model User {
+  id         String       @id
+  name       String?
+  email      String?      @unique
+  pass       String?
+  created_at DateTime     @default(now())
+  answers    UserAnswer[]
+  marks      UserMark[]
+}
+
+model UserMark {
+  id          Int      @id @default(autoincrement())
+  user_id     String
+  question_id Int
+  mark_title  String?
+  created_at  DateTime @default(now())
+  question    Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([question_id])
+}
+
+enum QuestionType {
+  choice
+}
