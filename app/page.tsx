@@ -62,7 +62,7 @@ export default async function Home() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {qualifications.map((qualification) => (
+          {qualifications.map((qualification: any) => (
             <Link
               key={qualification.id}
               href={`/qualifications/${qualification.id}`}

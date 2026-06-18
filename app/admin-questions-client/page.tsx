@@ -29,7 +29,7 @@ export default function AdminQuestionsClient() {
       chapterId: Number(fd.get("chapterId") || 1),
       questionType: "choice",
       questionText: String(fd.get("questionText") || ""),
-      choices: String(fd.get("choices") || "").split(",").map((s) => s.trim()).filter(Boolean),
+      choices: String(fd.get("choices") || "").split(",").map((s: any) => s.trim()).filter(Boolean),
       answer: Number(fd.get("answer") || 1),
       explanation: String(fd.get("explanation") || ""),
       difficulty: Number(fd.get("difficulty") || 1),
@@ -56,7 +56,7 @@ export default function AdminQuestionsClient() {
       id: q.id,
       fields: {
         questionText: newText,
-        choices: String(newChoices).split(",").map((s) => s.trim()),
+        choices: String(newChoices).split(",").map((s: any) => s.trim()),
       },
     };
 
@@ -91,7 +91,7 @@ export default function AdminQuestionsClient() {
           <p>読み込み中…</p>
         ) : (
           <ul className="space-y-2">
-            {questions.map((q) => (
+            {questions.map((q: any) => (
               <li key={q.id} className="flex items-start justify-between rounded border p-3">
                 <div>
                   <div className="text-sm font-medium">{q.id} — {q.questionText}</div>

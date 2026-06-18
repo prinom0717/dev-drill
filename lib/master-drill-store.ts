@@ -113,11 +113,11 @@ export async function getQualifications(): Promise<Qualification[]> {
     if (count === 0) return qualificationSeed;
 
     const exams = await prisma.exam.findMany({ include: { chapters: true } });
-    return exams.map((exam) => ({
+    return exams.map((exam: any) => ({
       id: String(exam.id),
       name: exam.exam_name ?? String(exam.id),
       description: exam.description ?? "",
-      chapters: (exam.chapters ?? []).map((ch) => ({
+      chapters: (exam.chapters ?? []).map((ch: any) => ({
         id: ch.chapter_number ?? ch.id,
         qualificationId: String(exam.id),
         title: ch.chapter_title,
@@ -137,16 +137,17 @@ export async function getQualificationById(qualificationId: string) {
         id: String(exam.id),
         name: exam.exam_name ?? String(exam.id),
         description: exam.description ?? "",
-        chapters: (exam.chapters ?? []).map((ch) => ({ id: ch.chapter_number ?? ch.id, qualificationId: String(exam.id), title: ch.chapter_title })),
+        chapters: (exam.chapters ?? []).map((ch: any) => ({ id: ch.chapter_number ?? ch.id, qualificationId: String(exam.id), title: ch.chapter_title })),
       };
     }
-n    // try exam_name as fallback key
+
+    // try exam_name as fallback key
     const examByName = await prisma.exam.findFirst({ where: { exam_name: qualificationId }, include: { chapters: true } });
     if (examByName) return {
       id: String(examByName.id),
       name: examByName.exam_name ?? String(examByName.id),
       description: examByName.description ?? "",
-      chapters: (examByName.chapters ?? []).map((ch) => ({ id: ch.chapter_number ?? ch.id, qualificationId: String(examByName.id), title: ch.chapter_title })),
+      chapters: (examByName.chapters ?? []).map((ch: any) => ({ id: ch.chapter_number ?? ch.id, qualificationId: String(examByName.id), title: ch.chapter_title })),
     };
   } catch (e) {
     // ignore and fallback to seed
@@ -162,13 +163,13 @@ export async function getChaptersForQualification(qualificationId: string) {
 
 export async function getChapterById(qualificationId: string, chapterId: number) {
   const chapters = await getChaptersForQualification(qualificationId);
-  return chapters.find((c) => c.id === chapterId) ?? null;
+  return chapters.find((c: any) => c.id === chapterId) ?? null;
 }
 
 export async function getQuestionById(questionId: number) {
   try {
     const q = await prisma.question.findUnique({ where: { id: questionId } });
-    if (!q) return questionSeed.find((x) => x.id === questionId) ?? null;
+    if (!q) return questionSeed.find((x: any) => x.id === questionId) ?? null;
     return {
       id: q.id,
       qualificationId: String(q.chapter_id),
@@ -197,7 +198,7 @@ export async function getQuestions(options?: { qualificationId?: string; chapter
       }
       // fetch questions whose chapter belongs to examId
       const questions = await prisma.question.findMany({ where: { chapter: { exam_id: examId }, ...where } as any });
-      let mapped = questions.map((q) => ({
+      let mapped = questions.map((q: any) => ({
         id: q.id,
         qualificationId: String(examId),
         chapterId: q.chapter_id,
@@ -209,7 +210,8 @@ export async function getQuestions(options?: { qualificationId?: string; chapter
         difficulty: q.difficulty ?? 1,
         createdAt: q.created_at.toISOString(),
       } as Question));
-n      if (options.random) mapped = mapped.sort(() => Math.random() - 0.5);
+
+      if (options.random) mapped = mapped.sort(() => Math.random() - 0.5);
       if (typeof options.limit === "number") mapped = mapped.slice(0, options.limit);
       return mapped;
     }
@@ -284,7 +286,7 @@ export async function recordAnswer(input: { userId?: string; questionId: number;
   const question = await getQuestionById(input.questionId);
   if (!question) throw new Error("Question not found");
   const isCorrect = question.answer === input.userAnswer;
-n  try {
+  try {
     // ensure user exists
     await prisma.user.upsert({ where: { id: userId }, update: {}, create: { id: userId } });
     const created = await prisma.userAnswer.create({ data: { user_id: userId, question_id: question.id, user_answer: String(input.userAnswer), is_correct: isCorrect } });
@@ -292,10 +294,10 @@ export async function recordAnswer(input: { userId?: string; questionId: number;
     // enforce max 5 per question per user
     const same = await prisma.userAnswer.findMany({ where: { user_id: userId, question_id: question.id }, orderBy: { answered_at: "desc" } });
     if (same.length > 5) {
-      const toKeep = same.slice(0, 5).map((s) => s.id);
+      const toKeep = same.slice(0, 5).map((s: any) => s.id);
       await prisma.userAnswer.deleteMany({ where: { user_id: userId, question_id: question.id, id: { notIn: toKeep } } });
     }
-n    return { record: { id: created.id, userId: created.user_id, questionId: created.question_id, userAnswer: created.user_answer ?? "", isCorrect: created.is_correct, answeredAt: created.answered_at.toISOString() }, question, isCorrect, correctAnswer: question.answer };
+    return { record: { id: created.id, userId: created.user_id, questionId: created.question_id, userAnswer: created.user_answer ?? "", isCorrect: created.is_correct, answeredAt: created.answered_at.toISOString() }, question, isCorrect, correctAnswer: question.answer };
   } catch (e) {
     // fallback to in-memory store (not persisted)
     const record: UserAnswerRecord = { id: Date.now(), userId, questionId: question.id, userAnswer: String(input.userAnswer), isCorrect, answeredAt: new Date().toISOString(), question };
@@ -306,7 +308,7 @@ export async function recordAnswer(input: { userId?: string; questionId: number;
 export async function getHistory(userId = dummyUserId) {
   try {
     const rows = await prisma.userAnswer.findMany({ where: { user_id: userId }, include: { question: true }, orderBy: { answered_at: "desc" } });
-    return rows.map((r) => ({ id: r.id, userId: r.user_id, questionId: r.question_id, userAnswer: r.user_answer ?? "", isCorrect: r.is_correct, answeredAt: r.answered_at.toISOString(), question: r.question ? { id: r.question.id, qualificationId: String(r.question.chapter_id), chapterId: r.question.chapter_id, questionType: r.question.question_type as QuestionType, questionText: r.question.question_text, choices: Array.isArray(r.question.choices) ? (r.question.choices as string[]) : [], answer: r.question.answer, explanation: r.question.explanation ?? "", difficulty: r.question.difficulty ?? 1, createdAt: r.question.created_at.toISOString() } : null }));
+    return rows.map((r: any) => ({ id: r.id, userId: r.user_id, questionId: r.question_id, userAnswer: r.user_answer ?? "", isCorrect: r.is_correct, answeredAt: r.answered_at.toISOString(), question: r.question ? { id: r.question.id, qualificationId: String(r.question.chapter_id), chapterId: r.question.chapter_id, questionType: r.question.question_type as QuestionType, questionText: r.question.question_text, choices: Array.isArray(r.question.choices) ? (r.question.choices as string[]) : [], answer: r.question.answer, explanation: r.question.explanation ?? "", difficulty: r.question.difficulty ?? 1, createdAt: r.question.created_at.toISOString() } : null }));
   } catch (e) {
     return [];
   }
@@ -323,7 +325,7 @@ export async function getQuestionHistoryCount(userId: string, questionId: number
 export async function getMarks(userId = dummyUserId) {
   try {
     const rows = await prisma.userMark.findMany({ where: { user_id: userId }, include: { question: true }, orderBy: { created_at: "desc" } });
-    return rows.map((r) => ({ id: r.id, userId: r.user_id, questionId: r.question_id, markTitle: r.mark_title ?? "", createdAt: r.created_at.toISOString(), question: r.question ? { id: r.question.id, qualificationId: String(r.question.chapter_id), chapterId: r.question.chapter_id, questionType: r.question.question_type as QuestionType, questionText: r.question.question_text, choices: Array.isArray(r.question.choices) ? (r.question.choices as string[]) : [], answer: r.question.answer, explanation: r.question.explanation ?? "", difficulty: r.question.difficulty ?? 1, createdAt: r.question.created_at.toISOString() } : null }));
+    return rows.map((r: any) => ({ id: r.id, userId: r.user_id, questionId: r.question_id, markTitle: r.mark_title ?? "", createdAt: r.created_at.toISOString(), question: r.question ? { id: r.question.id, qualificationId: String(r.question.chapter_id), chapterId: r.question.chapter_id, questionType: r.question.question_type as QuestionType, questionText: r.question.question_text, choices: Array.isArray(r.question.choices) ? (r.question.choices as string[]) : [], answer: r.question.answer, explanation: r.question.explanation ?? "", difficulty: r.question.difficulty ?? 1, createdAt: r.question.created_at.toISOString() } : null }));
   } catch (e) {
     return [];
   }
@@ -360,7 +362,7 @@ export async function getStats(userId = dummyUserId) {
   try {
     const history = await getHistory(userId);
     const total = history.length;
-    const correct = history.filter((h) => h.isCorrect).length;
+    const correct = history.filter((h: any) => h.isCorrect).length;
     const accuracy = total === 0 ? 0 : Math.round((correct / total) * 100);
     const marks = (await prisma.userMark.count({ where: { user_id: userId } })) || 0;
     return { userId, totalAnswers: total, correctAnswers: correct, accuracy, marks, latestHistory: history.slice(0, 5) };

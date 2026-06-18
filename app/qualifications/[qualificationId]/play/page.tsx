@@ -64,20 +64,20 @@ export default async function PlayPage({
   if (mode === "mistakes") {
     const history = await getHistory(dummyUserId);
     const wrongAnswers = history
-      .filter((entry) => !entry.isCorrect && entry.question?.qualificationId === qualificationId)
-      .map((entry) => entry.questionId)
-      .filter((id, index, self) => self.indexOf(id) === index); // 重複を除去
+      .filter((entry: any) => !entry.isCorrect && entry.question?.qualificationId === qualificationId)
+      .map((entry: any) => entry.questionId)
+      .filter((id: any, index: any, self: any) => self.indexOf(id) === index); // 重複を除去
 
     if (wrongAnswers.length > 0) {
       const mistakeQuestions = (await getQuestions({
         qualificationId,
-      })).filter((question) => wrongAnswers.includes(question.id));
+      })).filter((question: any) => wrongAnswers.includes(question.id));
 
       return (
         <QuizPlayClient
           qualificationId={qualificationId}
           question={mistakeQuestions[0]}
-          questionIds={mistakeQuestions.map((q) => q.id)}
+          questionIds={mistakeQuestions.map((q: any) => q.id)}
           currentIndex={0}
           mode="mistakes"
           chapterId={undefined}
@@ -95,8 +95,8 @@ export default async function PlayPage({
   const orderedQuestions =
     questionIdsFromUrl.length > 0
       ? questionIdsFromUrl
-          .map((questionId) => questions.find((question) => question.id === questionId))
-          .filter((question): question is NonNullable<typeof question> => Boolean(question))
+          .map((questionId) => questions.find((question: any) => question.id === questionId))
+          .filter((question: any): question is NonNullable<typeof question> => Boolean(question))
       : questions;
   const currentIndex = Number(query.index ?? "0");
   const currentQuestion = orderedQuestions[currentIndex] ?? orderedQuestions[0] ?? null;
@@ -151,7 +151,7 @@ export default async function PlayPage({
         <QuizPlayClient
           qualificationId={qualificationId}
           question={currentQuestion}
-          questionIds={orderedQuestions.map((question) => question.id)}
+          questionIds={orderedQuestions.map((question: any) => question.id)}
           currentIndex={currentIndex}
           mode={mode}
           chapterId={chapterId}

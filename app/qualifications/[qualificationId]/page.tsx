@@ -56,7 +56,7 @@ export default async function QualificationPage({
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {chapters.map((chapter) => (
+          {chapters.map((chapter: any) => (
             <Link
               key={chapter.id}
               href={`/qualifications/${qualificationId}/play?mode=chapter&chapterId=${chapter.id}&count=5`}
