@@ -9,16 +9,16 @@ export default async function HistoryPage({
   params: Promise<{ qualificationId: string }>;
 }) {
   const { qualificationId } = await params;
-  const qualification = getQualificationById(qualificationId);
+  const qualification = await getQualificationById(qualificationId);
 
   if (!qualification) {
     notFound();
   }
 
-  const history = getHistory(dummyUserId).filter(
+  const history = (await getHistory(dummyUserId)).filter(
     (entry) => entry.question?.qualificationId === qualificationId,
   );
-  const stats = getStats(dummyUserId);
+  const stats = await getStats(dummyUserId);
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">

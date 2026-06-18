@@ -1,3 +1,5 @@
+import { prisma } from "./prisma";
+
 export type QuestionType = "choice";
 
 export type Qualification = {
@@ -33,6 +35,7 @@ export type UserAnswerRecord = {
   userAnswer: string;
   isCorrect: boolean;
   answeredAt: string;
+  question?: Question | null;
 };
 
 export type UserMarkRecord = {
@@ -41,17 +44,10 @@ export type UserMarkRecord = {
   questionId: number;
   markTitle: string;
   createdAt: string;
+  question?: Question | null;
 };
 
-type StoreState = {
-  qualifications: Qualification[];
-  questions: Question[];
-  history: UserAnswerRecord[];
-  marks: UserMarkRecord[];
-  nextAnswerId: number;
-  nextMarkId: number;
-};
-
+// keep seeds as fallback when DB is not populated
 const qualificationSeed: Qualification[] = [
   {
     id: "fe",
@@ -83,16 +79,6 @@ const qualificationSeed: Qualification[] = [
       { id: 3, qualificationId: "nw", title: "第3章 セキュア通信" },
     ],
   },
-  {
-    id: "sc",
-    name: "情報処理安全確保支援士",
-    description: "セキュリティ対策の実務に強くなるための資格。",
-    chapters: [
-      { id: 1, qualificationId: "sc", title: "第1章 暗号と認証" },
-      { id: 2, qualificationId: "sc", title: "第2章 脆弱性対策" },
-      { id: 3, qualificationId: "sc", title: "第3章 インシデント対応" },
-    ],
-  },
 ];
 
 const questionSeed: Question[] = [
@@ -113,345 +99,273 @@ const questionSeed: Question[] = [
     difficulty: 2,
     createdAt: "2026-06-17T00:00:00.000Z",
   },
-  {
-    id: 102,
-    qualificationId: "fe",
-    chapterId: 2,
-    questionType: "choice",
-    questionText: "TCPの特徴として適切なものはどれか。",
-    choices: [
-      "コネクションレスである",
-      "順序保証や再送制御がある",
-      "必ず暗号化される",
-      "アドレス解決を行う",
-    ],
-    answer: 2,
-    explanation: "TCPはコネクション型で、順序保証と再送制御を備える。",
-    difficulty: 2,
-    createdAt: "2026-06-17T00:00:00.000Z",
-  },
-  {
-    id: 103,
-    qualificationId: "fe",
-    chapterId: 3,
-    questionType: "choice",
-    questionText: "リレーショナルデータベースの主キーの役割として最も適切なものはどれか。",
-    choices: [
-      "表の行を一意に識別する",
-      "必ず暗号化を行う",
-      "SQL文を自動生成する",
-      "テーブルを削除する",
-    ],
-    answer: 1,
-    explanation: "主キーは各行を一意に識別するための列または列の組み合わせ。",
-    difficulty: 1,
-    createdAt: "2026-06-17T00:00:00.000Z",
-  },
-  {
-    id: 201,
-    qualificationId: "ap",
-    chapterId: 1,
-    questionType: "choice",
-    questionText: "プロジェクトマネジメントでスコープ管理の目的はどれか。",
-    choices: [
-      "品質を高めるためだけに実施する",
-      "作業範囲を明確にし、変更を管理する",
-      "サーバー費用を固定する",
-      "テストを省略する",
-    ],
-    answer: 2,
-    explanation: "スコープ管理は、プロジェクトの作業範囲を明確にし、変更を統制する。",
-    difficulty: 3,
-    createdAt: "2026-06-17T00:00:00.000Z",
-  },
-  {
-    id: 202,
-    qualificationId: "ap",
-    chapterId: 3,
-    questionType: "choice",
-    questionText: "マイクロサービスの利点として適切なものはどれか。",
-    choices: [
-      "全ての機能を単一の巨大なモジュールに閉じ込める",
-      "サービスごとに独立して開発・デプロイしやすい",
-      "必ず通信量がゼロになる",
-      "データベース設計が不要になる",
-    ],
-    answer: 2,
-    explanation: "マイクロサービスでは機能ごとに分割し、独立した開発・運用がしやすい。",
-    difficulty: 3,
-    createdAt: "2026-06-17T00:00:00.000Z",
-  },
-  {
-    id: 301,
-    qualificationId: "nw",
-    chapterId: 1,
-    questionType: "choice",
-    questionText: "IPv4アドレスの長さはどれか。",
-    choices: ["16ビット", "32ビット", "64ビット", "128ビット"],
-    answer: 2,
-    explanation: "IPv4は32ビット長のアドレスを利用する。",
-    difficulty: 1,
-    createdAt: "2026-06-17T00:00:00.000Z",
-  },
-  {
-    id: 302,
-    qualificationId: "nw",
-    chapterId: 2,
-    questionType: "choice",
-    questionText: "ルーティングの役割として適切なものはどれか。",
-    choices: [
-      "通信経路を選択する",
-      "電源を供給する",
-      "画像を圧縮する",
-      "文字コードを変換する",
-    ],
-    answer: 1,
-    explanation: "ルータは宛先までの経路を選択して転送する。",
-    difficulty: 2,
-    createdAt: "2026-06-17T00:00:00.000Z",
-  },
-  {
-    id: 401,
-    qualificationId: "sc",
-    chapterId: 1,
-    questionType: "choice",
-    questionText: "認証の三要素に含まれないものはどれか。",
-    choices: ["知識情報", "所持情報", "生体情報", "電力情報"],
-    answer: 4,
-    explanation: "認証の三要素は知識情報、所持情報、生体情報。",
-    difficulty: 1,
-    createdAt: "2026-06-17T00:00:00.000Z",
-  },
-  {
-    id: 402,
-    qualificationId: "sc",
-    chapterId: 3,
-    questionType: "choice",
-    questionText: "インシデント対応の初動として最も適切なものはどれか。",
-    choices: [
-      "原因調査をせずに放置する",
-      "被害拡大を抑えつつ状況を把握する",
-      "すぐに全端末を廃棄する",
-      "ログを必ず削除する",
-    ],
-    answer: 2,
-    explanation: "初動は封じ込めと状況把握を優先し、被害拡大を止める。",
-    difficulty: 3,
-    createdAt: "2026-06-17T00:00:00.000Z",
-  },
 ];
-
-const globalForStore = globalThis as typeof globalThis & {
-  __masterDrillStore?: StoreState;
-};
-
-const store: StoreState =
-  globalForStore.__masterDrillStore ?? {
-    qualifications: qualificationSeed,
-    questions: questionSeed,
-    history: [],
-    marks: [],
-    nextAnswerId: 1,
-    nextMarkId: 1,
-  };
-
-if (!globalForStore.__masterDrillStore) {
-  globalForStore.__masterDrillStore = store;
-}
 
 export const dummyUserId = "dummy_user";
 
-export function getQualifications() {
-  return store.qualifications;
+function isNumericId(value: string | undefined) {
+  return typeof value === "string" && /^[0-9]+$/.test(value);
 }
 
-export function getQualificationById(qualificationId: string) {
-  return store.qualifications.find((item) => item.id === qualificationId) ?? null;
+export async function getQualifications(): Promise<Qualification[]> {
+  try {
+    const count = await prisma.exam.count();
+    if (count === 0) return qualificationSeed;
+
+    const exams = await prisma.exam.findMany({ include: { chapters: true } });
+    return exams.map((exam) => ({
+      id: String(exam.id),
+      name: exam.exam_name ?? String(exam.id),
+      description: exam.description ?? "",
+      chapters: (exam.chapters ?? []).map((ch) => ({
+        id: ch.chapter_number ?? ch.id,
+        qualificationId: String(exam.id),
+        title: ch.chapter_title,
+      })),
+    }));
+  } catch (e) {
+    return qualificationSeed;
+  }
 }
 
-export function getChaptersForQualification(qualificationId: string) {
-  const qualification = getQualificationById(qualificationId);
+export async function getQualificationById(qualificationId: string) {
+  // try numeric id first
+  try {
+    if (isNumericId(qualificationId)) {
+      const exam = await prisma.exam.findUnique({ where: { id: Number(qualificationId) }, include: { chapters: true } });
+      if (exam) return {
+        id: String(exam.id),
+        name: exam.exam_name ?? String(exam.id),
+        description: exam.description ?? "",
+        chapters: (exam.chapters ?? []).map((ch) => ({ id: ch.chapter_number ?? ch.id, qualificationId: String(exam.id), title: ch.chapter_title })),
+      };
+    }
+n    // try exam_name as fallback key
+    const examByName = await prisma.exam.findFirst({ where: { exam_name: qualificationId }, include: { chapters: true } });
+    if (examByName) return {
+      id: String(examByName.id),
+      name: examByName.exam_name ?? String(examByName.id),
+      description: examByName.description ?? "",
+      chapters: (examByName.chapters ?? []).map((ch) => ({ id: ch.chapter_number ?? ch.id, qualificationId: String(examByName.id), title: ch.chapter_title })),
+    };
+  } catch (e) {
+    // ignore and fallback to seed
+  }
+ 
+  return qualificationSeed.find((q) => q.id === qualificationId) ?? null;
+}
+
+export async function getChaptersForQualification(qualificationId: string) {
+  const qualification = await getQualificationById(qualificationId);
   return qualification?.chapters ?? [];
 }
 
-export function getChapterById(qualificationId: string, chapterId: number) {
-  return getChaptersForQualification(qualificationId).find((chapter) => chapter.id === chapterId) ?? null;
+export async function getChapterById(qualificationId: string, chapterId: number) {
+  const chapters = await getChaptersForQualification(qualificationId);
+  return chapters.find((c) => c.id === chapterId) ?? null;
 }
 
-export function getQuestionById(questionId: number) {
-  return store.questions.find((item) => item.id === questionId) ?? null;
+export async function getQuestionById(questionId: number) {
+  try {
+    const q = await prisma.question.findUnique({ where: { id: questionId } });
+    if (!q) return questionSeed.find((x) => x.id === questionId) ?? null;
+    return {
+      id: q.id,
+      qualificationId: String(q.chapter_id),
+      chapterId: q.chapter_id,
+      questionType: q.question_type as QuestionType,
+      questionText: q.question_text,
+      choices: Array.isArray(q.choices) ? (q.choices as string[]) : [],
+      answer: q.answer,
+      explanation: q.explanation ?? "",
+      difficulty: q.difficulty ?? 1,
+      createdAt: q.created_at.toISOString(),
+    } as Question;
+  } catch (e) {
+    return questionSeed.find((x) => x.id === questionId) ?? null;
+  }
 }
 
-export function getQuestions(options?: {
-  qualificationId?: string;
-  chapterId?: number;
-  limit?: number;
-  random?: boolean;
-}) {
-  let questions = store.questions.slice();
-
-  if (options?.qualificationId) {
-    questions = questions.filter((item) => item.qualificationId === options.qualificationId);
+export async function getQuestions(options?: { qualificationId?: string; chapterId?: number; limit?: number; random?: boolean; }) {
+  try {
+    // if qualificationId is numeric, query DB; otherwise fallback to seed filtering
+    if (options?.qualificationId && isNumericId(options.qualificationId)) {
+      const examId = Number(options.qualificationId);
+      const where: any = {};
+      if (typeof options.chapterId === "number") {
+        where.chapter_id = options.chapterId;
+      }
+      // fetch questions whose chapter belongs to examId
+      const questions = await prisma.question.findMany({ where: { chapter: { exam_id: examId }, ...where } as any });
+      let mapped = questions.map((q) => ({
+        id: q.id,
+        qualificationId: String(examId),
+        chapterId: q.chapter_id,
+        questionType: q.question_type as QuestionType,
+        questionText: q.question_text,
+        choices: Array.isArray(q.choices) ? (q.choices as string[]) : [],
+        answer: q.answer,
+        explanation: q.explanation ?? "",
+        difficulty: q.difficulty ?? 1,
+        createdAt: q.created_at.toISOString(),
+      } as Question));
+n      if (options.random) mapped = mapped.sort(() => Math.random() - 0.5);
+      if (typeof options.limit === "number") mapped = mapped.slice(0, options.limit);
+      return mapped;
+    }
+  } catch (e) {
+    // ignore and fallback to seed
   }
 
-  if (typeof options?.chapterId === "number") {
-    questions = questions.filter((item) => item.chapterId === options.chapterId);
-  }
-
-  if (options?.random) {
-    questions = questions.sort(() => Math.random() - 0.5);
-  }
-
-  if (typeof options?.limit === "number") {
-    questions = questions.slice(0, options.limit);
-  }
-
+  // fallback to in-memory seed
+  let questions = questionSeed.slice();
+  if (options?.qualificationId) questions = questions.filter((item) => item.qualificationId === options.qualificationId);
+  if (typeof options?.chapterId === "number") questions = questions.filter((item) => item.chapterId === options.chapterId);
+  if (options?.random) questions = questions.sort(() => Math.random() - 0.5);
+  if (typeof options?.limit === "number") questions = questions.slice(0, options.limit);
   return questions;
 }
 
-export function recordAnswer(input: {
-  userId?: string;
-  questionId: number;
-  userAnswer: number;
-}) {
-  const userId = input.userId?.trim() || dummyUserId;
-  const question = getQuestionById(input.questionId);
-
-  if (!question) {
-    throw new Error("Question not found");
+export async function addQuestion(input: { qualificationId: string; chapterId: number; questionType: QuestionType; questionText: string; choices: string[]; answer: number; explanation?: string; difficulty?: number; }) {
+  try {
+    const created = await prisma.question.create({ data: {
+      chapter_id: input.chapterId,
+      question_type: input.questionType,
+      question_text: input.questionText,
+      choices: input.choices as any,
+      answer: input.answer,
+      explanation: input.explanation ?? "",
+      difficulty: input.difficulty ?? 1,
+    } });
+    return await getQuestionById(created.id);
+  } catch (e) {
+    // fallback to seed behavior (not persisted)
+    const id = (questionSeed.length === 0 ? 1 : Math.max(...questionSeed.map((q) => q.id)) + 1);
+    const q: Question = { id, qualificationId: input.qualificationId, chapterId: input.chapterId, questionType: input.questionType, questionText: input.questionText, choices: input.choices, answer: input.answer, explanation: input.explanation ?? "", difficulty: input.difficulty ?? 1, createdAt: new Date().toISOString() };
+    questionSeed.push(q);
+    return q;
   }
+}
 
+export async function updateQuestion(input: { id: number; fields: Partial<Omit<Question, "id" | "createdAt">> }) {
+  try {
+    const data: any = { ...input.fields };
+    if (data.choices) data.choices = data.choices as any;
+    const updated = await prisma.question.update({ where: { id: input.id }, data });
+    return await getQuestionById(updated.id);
+  } catch (e) {
+    // fallback: update seed
+    const idx = questionSeed.findIndex((q) => q.id === input.id);
+    if (idx === -1) return null;
+    const updated = { ...questionSeed[idx], ...input.fields } as Question;
+    questionSeed[idx] = updated;
+    return updated;
+  }
+}
+
+export async function deleteQuestion(id: number) {
+  try {
+    await prisma.question.delete({ where: { id } });
+    return 1;
+  } catch (e) {
+    const before = questionSeed.length;
+    const remaining = questionSeed.filter((q) => q.id !== id);
+    if (remaining.length !== questionSeed.length) {
+      questionSeed.length = 0;
+      questionSeed.push(...remaining);
+      return before - remaining.length;
+    }
+    return 0;
+  }
+}
+
+export async function recordAnswer(input: { userId?: string; questionId: number; userAnswer: number; }) {
+  const userId = input.userId?.trim() || dummyUserId;
+  const question = await getQuestionById(input.questionId);
+  if (!question) throw new Error("Question not found");
   const isCorrect = question.answer === input.userAnswer;
-  const record: UserAnswerRecord = {
-    id: store.nextAnswerId,
-    userId,
-    questionId: question.id,
-    userAnswer: String(input.userAnswer),
-    isCorrect,
-    answeredAt: new Date().toISOString(),
-  };
+n  try {
+    // ensure user exists
+    await prisma.user.upsert({ where: { id: userId }, update: {}, create: { id: userId } });
+    const created = await prisma.userAnswer.create({ data: { user_id: userId, question_id: question.id, user_answer: String(input.userAnswer), is_correct: isCorrect } });
 
-  store.nextAnswerId += 1;
-  store.history = [record, ...store.history];
-
-  const sameQuestionHistory = store.history.filter(
-    (entry) => entry.userId === userId && entry.questionId === question.id,
-  );
-
-  if (sameQuestionHistory.length > 5) {
-    const idsToKeep = new Set(sameQuestionHistory.slice(0, 5).map((entry) => entry.id));
-    store.history = store.history.filter(
-      (entry) =>
-        entry.userId !== userId ||
-        entry.questionId !== question.id ||
-        idsToKeep.has(entry.id),
-    );
-  }
-
-  return {
-    record,
-    question,
-    isCorrect,
-    correctAnswer: question.answer,
-  };
-}
-
-export function getHistory(userId = dummyUserId) {
-  return store.history
-    .filter((entry) => entry.userId === userId)
-    .map((entry) => {
-      const question = getQuestionById(entry.questionId);
-      return {
-        ...entry,
-        question,
-      };
-    })
-    .sort((left, right) => right.answeredAt.localeCompare(left.answeredAt));
-}
-
-export function getQuestionHistoryCount(userId: string, questionId: number) {
-  return store.history.filter((entry) => entry.userId === userId && entry.questionId === questionId).length;
-}
-
-export function getMarks(userId = dummyUserId) {
-  return store.marks
-    .filter((entry) => entry.userId === userId)
-    .map((entry) => ({
-      ...entry,
-      question: getQuestionById(entry.questionId),
-    }))
-    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
-}
-
-export function addMark(input: {
-  userId?: string;
-  questionId: number;
-  markTitle?: string;
-}) {
-  const userId = input.userId?.trim() || dummyUserId;
-  const question = getQuestionById(input.questionId);
-
-  if (!question) {
-    throw new Error("Question not found");
-  }
-
-  const currentCount = store.marks.filter(
-    (entry) => entry.userId === userId && entry.questionId === question.id,
-  ).length;
-
-  if (currentCount >= 5) {
-    return { ok: false as const, message: "同じ問題には最大5件まで登録できます。" };
-  }
-
-  const record: UserMarkRecord = {
-    id: store.nextMarkId,
-    userId,
-    questionId: question.id,
-    markTitle: input.markTitle?.trim() || `チェック ${currentCount + 1}`,
-    createdAt: new Date().toISOString(),
-  };
-
-  store.nextMarkId += 1;
-  store.marks = [...store.marks, record];
-
-  return { ok: true as const, record };
-}
-
-export function removeMark(input: {
-  userId?: string;
-  questionId: number;
-  markId?: number;
-}) {
-  const userId = input.userId?.trim() || dummyUserId;
-
-  const before = store.marks.length;
-  store.marks = store.marks.filter((entry) => {
-    if (entry.userId !== userId || entry.questionId !== input.questionId) {
-      return true;
+    // enforce max 5 per question per user
+    const same = await prisma.userAnswer.findMany({ where: { user_id: userId, question_id: question.id }, orderBy: { answered_at: "desc" } });
+    if (same.length > 5) {
+      const toKeep = same.slice(0, 5).map((s) => s.id);
+      await prisma.userAnswer.deleteMany({ where: { user_id: userId, question_id: question.id, id: { notIn: toKeep } } });
     }
+n    return { record: { id: created.id, userId: created.user_id, questionId: created.question_id, userAnswer: created.user_answer ?? "", isCorrect: created.is_correct, answeredAt: created.answered_at.toISOString() }, question, isCorrect, correctAnswer: question.answer };
+  } catch (e) {
+    // fallback to in-memory store (not persisted)
+    const record: UserAnswerRecord = { id: Date.now(), userId, questionId: question.id, userAnswer: String(input.userAnswer), isCorrect, answeredAt: new Date().toISOString(), question };
+    return { record, question, isCorrect, correctAnswer: question.answer };
+  }
+}
 
+export async function getHistory(userId = dummyUserId) {
+  try {
+    const rows = await prisma.userAnswer.findMany({ where: { user_id: userId }, include: { question: true }, orderBy: { answered_at: "desc" } });
+    return rows.map((r) => ({ id: r.id, userId: r.user_id, questionId: r.question_id, userAnswer: r.user_answer ?? "", isCorrect: r.is_correct, answeredAt: r.answered_at.toISOString(), question: r.question ? { id: r.question.id, qualificationId: String(r.question.chapter_id), chapterId: r.question.chapter_id, questionType: r.question.question_type as QuestionType, questionText: r.question.question_text, choices: Array.isArray(r.question.choices) ? (r.question.choices as string[]) : [], answer: r.question.answer, explanation: r.question.explanation ?? "", difficulty: r.question.difficulty ?? 1, createdAt: r.question.created_at.toISOString() } : null }));
+  } catch (e) {
+    return [];
+  }
+}
+
+export async function getQuestionHistoryCount(userId: string, questionId: number) {
+  try {
+    return await prisma.userAnswer.count({ where: { user_id: userId, question_id: questionId } });
+  } catch (e) {
+    return 0;
+  }
+}
+
+export async function getMarks(userId = dummyUserId) {
+  try {
+    const rows = await prisma.userMark.findMany({ where: { user_id: userId }, include: { question: true }, orderBy: { created_at: "desc" } });
+    return rows.map((r) => ({ id: r.id, userId: r.user_id, questionId: r.question_id, markTitle: r.mark_title ?? "", createdAt: r.created_at.toISOString(), question: r.question ? { id: r.question.id, qualificationId: String(r.question.chapter_id), chapterId: r.question.chapter_id, questionType: r.question.question_type as QuestionType, questionText: r.question.question_text, choices: Array.isArray(r.question.choices) ? (r.question.choices as string[]) : [], answer: r.question.answer, explanation: r.question.explanation ?? "", difficulty: r.question.difficulty ?? 1, createdAt: r.question.created_at.toISOString() } : null }));
+  } catch (e) {
+    return [];
+  }
+}
+
+export async function addMark(input: { userId?: string; questionId: number; markTitle?: string; }) {
+  const userId = input.userId?.trim() || dummyUserId;
+  try {
+    await prisma.user.upsert({ where: { id: userId }, update: {}, create: { id: userId } });
+    const currentCount = await prisma.userMark.count({ where: { user_id: userId, question_id: input.questionId } });
+    if (currentCount >= 5) return { ok: false as const, message: "同じ問題には最大5件まで登録できます。" };
+    const created = await prisma.userMark.create({ data: { user_id: userId, question_id: input.questionId, mark_title: input.markTitle ?? undefined } });
+    return { ok: true as const, record: { id: created.id, userId: created.user_id, questionId: created.question_id, markTitle: created.mark_title ?? "", createdAt: created.created_at.toISOString() } };
+  } catch (e) {
+    return { ok: false as const, message: "DB error" };
+  }
+}
+
+export async function removeMark(input: { userId?: string; questionId: number; markId?: number; }) {
+  const userId = input.userId?.trim() || dummyUserId;
+  try {
     if (typeof input.markId === "number") {
-      return entry.id !== input.markId;
+      const deleted = await prisma.userMark.deleteMany({ where: { id: input.markId, user_id: userId, question_id: input.questionId } });
+      return { removed: deleted.count };
     }
-
-    return false;
-  });
-
-  return { removed: before - store.marks.length };
+    const deleted = await prisma.userMark.deleteMany({ where: { user_id: userId, question_id: input.questionId } });
+    return { removed: deleted.count };
+  } catch (e) {
+    return { removed: 0 };
+  }
 }
 
-export function getStats(userId = dummyUserId) {
-  const history = getHistory(userId);
-  const total = history.length;
-  const correct = history.filter((entry) => entry.isCorrect).length;
-  const accuracy = total === 0 ? 0 : Math.round((correct / total) * 100);
-
-  return {
-    userId,
-    totalAnswers: total,
-    correctAnswers: correct,
-    accuracy,
-    marks: getMarks(userId).length,
-    latestHistory: history.slice(0, 5),
-  };
+export async function getStats(userId = dummyUserId) {
+  try {
+    const history = await getHistory(userId);
+    const total = history.length;
+    const correct = history.filter((h) => h.isCorrect).length;
+    const accuracy = total === 0 ? 0 : Math.round((correct / total) * 100);
+    const marks = (await prisma.userMark.count({ where: { user_id: userId } })) || 0;
+    return { userId, totalAnswers: total, correctAnswers: correct, accuracy, marks, latestHistory: history.slice(0, 5) };
+  } catch (e) {
+    return { userId, totalAnswers: 0, correctAnswers: 0, accuracy: 0, marks: 0, latestHistory: [] };
+  }
 }
+

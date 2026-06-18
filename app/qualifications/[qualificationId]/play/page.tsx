@@ -31,7 +31,7 @@ export default async function PlayPage({
 }) {
   const { qualificationId } = await params;
   const query = await searchParams;
-  const qualification = getQualificationById(qualificationId);
+  const qualification = await getQualificationById(qualificationId);
 
   if (!qualification) {
     notFound();
@@ -45,7 +45,7 @@ export default async function PlayPage({
 
   // 単一問題のレビューモード
   if (mode === "review" && reviewQuestionId > 0) {
-    const reviewQuestion = getQuestionById(reviewQuestionId);
+    const reviewQuestion = await getQuestionById(reviewQuestionId);
     if (reviewQuestion) {
       return (
         <QuizPlayClient
@@ -62,16 +62,16 @@ export default async function PlayPage({
 
   // 不正解問題のみのモード
   if (mode === "mistakes") {
-    const history = getHistory(dummyUserId);
+    const history = await getHistory(dummyUserId);
     const wrongAnswers = history
       .filter((entry) => !entry.isCorrect && entry.question?.qualificationId === qualificationId)
       .map((entry) => entry.questionId)
       .filter((id, index, self) => self.indexOf(id) === index); // 重複を除去
 
     if (wrongAnswers.length > 0) {
-      const mistakeQuestions = getQuestions({
+      const mistakeQuestions = (await getQuestions({
         qualificationId,
-      }).filter((question) => wrongAnswers.includes(question.id));
+      })).filter((question) => wrongAnswers.includes(question.id));
 
       return (
         <QuizPlayClient
@@ -86,7 +86,7 @@ export default async function PlayPage({
     }
   }
 
-    const questions = getQuestions({
+    const questions = await getQuestions({
     qualificationId,
     chapterId: mode === "chapter" ? chapterId : undefined,
     random: mode === "random",
@@ -103,7 +103,7 @@ export default async function PlayPage({
 
   const chapter =
     mode === "chapter" && Number.isFinite(chapterId)
-      ? getChapterById(qualificationId, chapterId)
+      ? await getChapterById(qualificationId, chapterId)
       : null;
 
   return (

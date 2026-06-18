@@ -4,7 +4,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const userId = url.searchParams.get("userId") ?? dummyUserId;
 
-  return Response.json({ marks: getMarks(userId) });
+  return Response.json({ marks: await getMarks(userId) });
 }
 
 export async function POST(request: Request) {
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     return Response.json({ message: "questionId は必須です。" }, { status: 400 });
   }
 
-  const mark = addMark({
+  const mark = await addMark({
     userId: body.userId ?? dummyUserId,
     questionId: body.questionId,
     markTitle: body.markTitle,
@@ -38,7 +38,7 @@ export async function DELETE(request: Request) {
   const questionId = Number(url.searchParams.get("questionId") ?? "0");
   const userId = url.searchParams.get("userId") ?? dummyUserId;
 
-  const result = removeMark({ userId, questionId });
+  const result = await removeMark({ userId, questionId });
 
   return Response.json({ removed: result.removed });
 }

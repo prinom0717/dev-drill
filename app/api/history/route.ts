@@ -4,5 +4,5 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const userId = url.searchParams.get("userId") ?? dummyUserId;
 
-  return Response.json({ history: getHistory(userId) });
+  return Response.json({ history: await getHistory(userId) });
 }

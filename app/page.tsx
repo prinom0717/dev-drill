@@ -2,9 +2,9 @@ import Link from "next/link";
 
 import { dummyUserId, getQualifications, getStats } from "@/lib/master-drill-store";
 
-export default function Home() {
-  const qualifications = getQualifications();
-  const stats = getStats(dummyUserId);
+export default async function Home() {
+  const qualifications = await getQualifications();
+  const stats = await getStats(dummyUserId);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
