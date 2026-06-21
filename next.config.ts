@@ -1,10 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    // @ts-expect-error - Turbopack を無効化するための非公開オプション
-    turbo: false,
-  },
+  // 必要な設定があればここに追加
 };
 
 export default nextConfig;
