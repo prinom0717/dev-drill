@@ -10,7 +10,7 @@ type Props = {
   question: Question;
   questionIds: number[];
   currentIndex: number;
-  mode: "chapter" | "random" | "mistakes" | "review";
+  mode: "chapter" | "random" | "mistakes" | "review" | "unanswered";
   chapterId?: number;
 };
 
@@ -101,18 +101,6 @@ export function QuizPlayClient({
             </button>
           ))}
         </div>
-        <button
-            onTouchStart={() => {
-                fetch('/api/log', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ event: 'tap', time: Date.now() })
-                });
-            }}
-            >
-            iPhone Log Test
-        </button>
-
       </article>
     </div>
   );

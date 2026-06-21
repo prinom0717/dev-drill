@@ -15,10 +15,18 @@ export default async function HistoryPage({
     notFound();
   }
 
-  const history = (await getHistory(dummyUserId)).filter(
-    (entry: any) => entry.question?.qualificationId === qualificationId,
-  );
-  const stats = await getStats(dummyUserId);
+  const history = (await getHistory(dummyUserId, { examId: Number(qualificationId) }));
+  
+  // フィルタリングされた履歴データから統計を計算
+  const totalAttempts = history.reduce((sum: number, h: any) => sum + h.totalAttempts, 0);
+  const totalCorrect = history.reduce((sum: number, h: any) => sum + h.correctCount, 0);
+  const accuracy = totalAttempts === 0 ? 0 : Math.round((totalCorrect / totalAttempts) * 100);
+  
+  const stats = {
+    totalAnswers: totalAttempts,
+    correctAnswers: totalCorrect,
+    accuracy: accuracy
+  };
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
@@ -43,6 +51,13 @@ export default async function HistoryPage({
               className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
             >
               不正解問題を解く
+            </Link>
+            {/* 未出題問題ボタンを追加 */}
+            <Link
+              href={`/qualifications/${qualificationId}/play?mode=unanswered`}
+              className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            >
+              未出題問題を解く
             </Link>
           </div>
         </div>
@@ -77,29 +92,38 @@ export default async function HistoryPage({
           <div className="grid gap-4">
             {history.map((entry: any) => (
               <article
-                key={entry.id}
+                key={entry.questionId}
                 className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_20px_50px_-44px_rgba(15,23,42,0.28)]"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Question</p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Question</p>
+                      <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">
+                        {entry.totalAttempts}回中{entry.correctCount}回正解 ({entry.accuracy}%)
+                      </span>
+                    </div>
                     <h3 className="mt-2 text-lg font-semibold text-slate-900">{entry.question?.questionText}</h3>
                   </div>
                   <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${entry.isCorrect ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${entry.latestAnswer.isCorrect ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}
                   >
-                    {entry.isCorrect ? "正解" : "不正解"}
+                    {entry.latestAnswer.isCorrect ? "正解" : "不正解"}
                   </span>
                 </div>
 
-                <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                <dl className="mt-4 grid gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl bg-slate-50 p-4">
                     <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">あなたの解答</dt>
-                    <dd className="mt-2 text-sm text-slate-900">{entry.userAnswer}</dd>
+                    <dd className="mt-2 text-sm text-slate-900">{entry.latestAnswer.userAnswer}</dd>
                   </div>
                   <div className="rounded-2xl bg-slate-50 p-4">
                     <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">解答日時</dt>
-                    <dd className="mt-2 text-sm text-slate-900">{new Date(entry.answeredAt).toLocaleString("ja-JP")}</dd>
+                    <dd className="mt-2 text-sm text-slate-900">{new Date(entry.latestAnswer.answeredAt).toLocaleString("ja-JP")}</dd>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">累積正答率</dt>
+                    <dd className="mt-2 text-sm text-slate-900">{entry.accuracy}%</dd>
                   </div>
                 </dl>
                 <div className="mt-4 flex gap-2">

@@ -8,13 +8,6 @@ export default function HeaderClient() {
 
   return (
     <div className="flex items-center gap-3">
-      <Link
-        href="/debug"
-        className="rounded-full bg-amber-600 px-4 py-2 text-white transition hover:bg-amber-700"
-      >
-        問題管理
-      </Link>
-
       <div className="relative">
         <button
           aria-label="メニュー"
@@ -29,10 +22,13 @@ export default function HeaderClient() {
         </button>
 
         {open && (
-          <div className="absolute right-0 mt-2 w-44 rounded-md border bg-white p-2 shadow-md">
-            <Link href="/#qualifications" className="block px-3 py-2 text-sm hover:bg-slate-50">資格一覧</Link>
-            <Link href="/qualifications/fe/history" className="block px-3 py-2 text-sm hover:bg-slate-50">履歴</Link>
-            <Link href="/" className="block px-3 py-2 text-sm hover:bg-slate-50">ホーム</Link>
+          <div className="absolute right-0 mt-2 w-52 rounded-md border bg-white p-2 shadow-md z-50">
+            <Link href="/" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>ホーム</Link>
+            <div className="border-t my-1"></div>
+            <Link href="/admin" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>出題管理</Link>
+            <div className="border-t my-1"></div>
+            <Link href="/#qualifications" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>資格一覧</Link>
+            <Link href="/history" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>履歴</Link>
           </div>
         )}
       </div>

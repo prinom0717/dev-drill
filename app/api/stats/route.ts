@@ -4,5 +4,5 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const userId = url.searchParams.get("userId") ?? dummyUserId;
 
-  return Response.json({ stats: await getStats(userId) });
+  return Response.json(await getStats(userId));
 }

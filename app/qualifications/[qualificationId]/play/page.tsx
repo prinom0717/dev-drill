@@ -37,7 +37,7 @@ export default async function PlayPage({
     notFound();
   }
 
-  const mode = query.mode === "random" || query.mode === "mistakes" || query.mode === "review" ? query.mode : "chapter";
+  const mode = query.mode === "random" || query.mode === "mistakes" || query.mode === "review" || query.mode === "unanswered" ? query.mode : "chapter";
   const chapterId = Number(query.chapterId ?? query.chapter ?? "0");
   const questionIdsFromUrl = parseQuestionIds(query.questionIds);
   const count = Number(query.count ?? "0");
@@ -86,6 +86,34 @@ export default async function PlayPage({
     }
   }
 
+  // 未出題問題のみのモード
+  if (mode === "unanswered") {
+    const history = await getHistory(dummyUserId);
+    const answeredQuestionIds = history
+      .filter((entry: any) => entry.question?.qualificationId === qualificationId)
+      .map((entry: any) => entry.questionId)
+      .filter((id: any, index: any, self: any) => self.indexOf(id) === index); // 重複を除去
+
+    const allQuestions = await getQuestions({
+      qualificationId,
+    });
+
+    const unansweredQuestions = allQuestions.filter((question: any) => !answeredQuestionIds.includes(question.id));
+
+    if (unansweredQuestions.length > 0) {
+      return (
+        <QuizPlayClient
+          qualificationId={qualificationId}
+          question={unansweredQuestions[0]}
+          questionIds={unansweredQuestions.map((q: any) => q.id)}
+          currentIndex={0}
+          mode="unanswered"
+          chapterId={undefined}
+        />
+      );
+    }
+  }
+
     const questions = await getQuestions({
     qualificationId,
     chapterId: mode === "chapter" ? chapterId : undefined,
@@ -118,6 +146,8 @@ export default async function PlayPage({
             <p className="mt-3 text-sm text-slate-600">
               {mode === "mistakes"
                 ? `不正解問題 ${orderedQuestions.length} 問を復習`
+                : mode === "unanswered"
+                ? `未出題問題 ${orderedQuestions.length} 問を演習`
                 : mode === "random"
                 ? `ランダム出題 ${orderedQuestions.length} 問を1問ずつ`
                 : chapter
@@ -145,7 +175,9 @@ export default async function PlayPage({
 
       {currentQuestion === null ? (
         <section className="rounded-[1.5rem] border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
-          この条件では問題が見つかりませんでした。
+          {mode === "mistakes" && "不正解問題が見つかりませんでした。"}
+          {mode === "unanswered" && "未出題問題が見つかりませんでした。すべての問題を解き終えました！"}
+          {!mode || mode === "random" || mode === "chapter" ? "この条件では問題が見つかりませんでした。" : ""}
         </section>
       ) : (
         <QuizPlayClient
