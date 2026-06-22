@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { TextField, Button, Select, MenuItem, FormControl, InputLabel, Paper, Stack, Box } from "@mui/material";
 
 type Exam = { id: number; examName: string; description: string };
 type Chapter = { id: number; examId: number; chapterNumber: number; chapterTitle: string; coverage: string | null };
@@ -104,57 +105,93 @@ export default function AdminChaptersClient() {
     <div className="prose mx-auto max-w-4xl p-6">
       <h1 className="text-xl font-semibold">章管理</h1>
 
-      <form onSubmit={handleAdd} className="space-y-2 rounded-md border p-4">
-        <div className="flex gap-2">
-          <select
-            value={selectedExamId || ""}
-            onChange={(e) => setSelectedExamId(Number(e.target.value) || null)}
-            className="w-48 rounded border px-2"
-          >
-            <option value="">試験を選択</option>
-            {exams.map((exam) => (
-              <option key={exam.id} value={exam.id}>
-                {exam.examName}
-              </option>
-            ))}
-          </select>
-          <input name="chapterNumber" placeholder="章番号" className="w-24 rounded border px-2" />
-        </div>
-        <input name="chapterTitle" placeholder="章タイトル" className="w-full rounded border px-2" />
-        <input name="coverage" placeholder="範囲（任意）" className="w-full rounded border px-2" />
-        <div>
-          <button className="rounded bg-amber-600 px-4 py-2 text-white">追加</button>
-        </div>
-      </form>
+      <Paper component="form" onSubmit={handleAdd} sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+        <Stack spacing={2}>
+          <Stack direction="row" spacing={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>試験を選択</InputLabel>
+              <Select
+                value={selectedExamId || ""}
+                onChange={(e) => setSelectedExamId(Number(e.target.value) || null)}
+                label="試験を選択"
+              >
+                <MenuItem value="">試験を選択</MenuItem>
+                {exams.map((exam) => (
+                  <MenuItem key={exam.id} value={exam.id}>
+                    {exam.examName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              name="chapterNumber"
+              placeholder="章番号"
+              sx={{ width: 150 }}
+              size="small"
+              label="章番号"
+              type="number"
+            />
+          </Stack>
+          <TextField
+            name="chapterTitle"
+            placeholder="章タイトル"
+            fullWidth
+            size="small"
+            label="章タイトル"
+          />
+          <TextField
+            name="coverage"
+            placeholder="範囲（任意）"
+            fullWidth
+            size="small"
+            label="範囲（任意）"
+          />
+        </Stack>
+        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+          <Button type="submit" variant="contained" color="warning">
+            追加
+          </Button>
+        </Stack>
+      </Paper>
 
       <div className="mt-6">
         <h2 className="text-lg font-semibold">既存の章 ({chapters.length})</h2>
         {loading ? (
           <p>読み込み中…</p>
         ) : (
-          <ul className="space-y-2">
+          <Stack spacing={2}>
             {chapters.map((chapter: any) => (
-              <li key={chapter.id} className="rounded border p-3">
+              <Paper key={chapter.id} sx={{ p: 3 }}>
                 {editingId === chapter.id ? (
-                  <div className="space-y-2">
-                    <input
-                      type="number"
-                      defaultValue={chapter.chapterNumber}
-                      id={`edit-chapter-num-${chapter.id}`}
-                      className="w-24 rounded border px-2"
-                    />
-                    <input
-                      defaultValue={chapter.chapterTitle}
-                      id={`edit-chapter-title-${chapter.id}`}
-                      className="w-full rounded border px-2"
-                    />
-                    <input
-                      defaultValue={chapter.coverage || ""}
-                      id={`edit-chapter-coverage-${chapter.id}`}
-                      className="w-full rounded border px-2"
-                    />
-                    <div className="flex gap-2">
-                      <button
+                  <Paper sx={{ p: 2 }}>
+                    <Stack spacing={2}>
+                      <Stack direction="row" spacing={2}>
+                        <TextField
+                          type="number"
+                          defaultValue={chapter.chapterNumber}
+                          id={`edit-chapter-num-${chapter.id}`}
+                          sx={{ width: 150 }}
+                          size="small"
+                          label="章番号"
+                        />
+                        <TextField
+                          defaultValue={chapter.chapterTitle}
+                          id={`edit-chapter-title-${chapter.id}`}
+                          fullWidth
+                          size="small"
+                          label="章タイトル"
+                        />
+                      </Stack>
+                      <TextField
+                        defaultValue={chapter.coverage || ""}
+                        id={`edit-chapter-coverage-${chapter.id}`}
+                        fullWidth
+                        size="small"
+                        label="範囲"
+                      />
+                    </Stack>
+                    <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+                      <Button
                         onClick={() => {
                           const numInput = document.getElementById(`edit-chapter-num-${chapter.id}`) as HTMLInputElement;
                           const titleInput = document.getElementById(`edit-chapter-title-${chapter.id}`) as HTMLInputElement;
@@ -166,18 +203,21 @@ export default function AdminChaptersClient() {
                             coverageInput.value
                           );
                         }}
-                        className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
+                        variant="contained"
+                        color="primary"
+                        size="small"
                       >
                         保存
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => setEditingId(null)}
-                        className="rounded border px-3 py-1 text-sm"
+                        variant="outlined"
+                        size="small"
                       >
                         キャンセル
-                      </button>
-                    </div>
-                  </div>
+                      </Button>
+                    </Stack>
+                  </Paper>
                 ) : (
                   <div className="flex items-start justify-between">
                     <div>
@@ -189,24 +229,27 @@ export default function AdminChaptersClient() {
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <button
+                      <Button
                         onClick={() => setEditingId(chapter.id)}
-                        className="rounded border px-3 py-1 text-sm"
+                        variant="outlined"
+                        size="small"
                       >
                         編集
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => handleDelete(chapter.id)}
-                        className="rounded bg-red-600 px-3 py-1 text-sm text-white"
+                        variant="contained"
+                        color="error"
+                        size="small"
                       >
                         削除
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
-              </li>
+              </Paper>
             ))}
-          </ul>
+          </Stack>
         )}
       </div>
     </div>

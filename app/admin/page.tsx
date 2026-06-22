@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { TextField, Button, Select, MenuItem, FormControl, InputLabel, Paper, Stack, Box, Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 
 type Exam = { id: number; examName: string; description: string };
 type Chapter = { id: number; examId: number; chapterNumber: number; chapterTitle: string; coverage: string | null };
@@ -255,233 +256,252 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="prose mx-auto max-w-6xl p-6">
+    <div className="prose mx-auto max-w-4xl p-6">
       <h1 className="text-2xl font-semibold">管理画面</h1>
 
-      <div className="mb-6">
-        <div className="flex gap-2 border-b">
-          <button
-            onClick={() => setActiveTab("exams")}
-            className={`px-4 py-2 text-sm font-medium ${activeTab === "exams" ? "border-b-2 border-amber-600 text-amber-700" : "text-slate-600 hover:text-amber-700"}`}
-          >
-            試験管理
-          </button>
-          <button
-            onClick={() => setActiveTab("chapters")}
-            className={`px-4 py-2 text-sm font-medium ${activeTab === "chapters" ? "border-b-2 border-amber-600 text-amber-700" : "text-slate-600 hover:text-amber-700"}`}
-          >
-            章管理
-          </button>
-          <button
-            onClick={() => setActiveTab("questions")}
-            className={`px-4 py-2 text-sm font-medium ${activeTab === "questions" ? "border-b-2 border-amber-600 text-amber-700" : "text-slate-600 hover:text-amber-700"}`}
-          >
-            問題管理
-          </button>
-        </div>
-      </div>
+      <Box sx={{ mb: 6 }}>
+        <Tabs value={activeTab} onChange={(e, value) => setActiveTab(value)}>
+          <Tab value="exams" label="試験管理" />
+          <Tab value="chapters" label="章管理" />
+          <Tab value="questions" label="問題管理" />
+        </Tabs>
+      </Box>
 
       {activeTab === "exams" && (
-        <div className="space-y-6">
-          <form onSubmit={handleAddExam} className="space-y-2 rounded-md border p-4">
-            <input name="examName" placeholder="試験名" className="w-full rounded border px-2" />
-            <textarea name="description" placeholder="説明" className="w-full rounded border px-2 min-h-[60px]" rows={2} />
-            <div>
-              <button className="rounded bg-amber-600 px-4 py-2 text-white">追加</button>
-            </div>
-          </form>
+        <Stack spacing={6}>
+          <Paper component="form" onSubmit={handleAddExam} sx={{ p: 3, width: '100%', mx: 'auto' }}>
+            <Stack spacing={2}>
+              <TextField name="examName" placeholder="試験名" fullWidth size="small" label="試験名" />
+              <TextField name="description" placeholder="説明" fullWidth size="small" label="説明" multiline rows={2} />
+            </Stack>
+            <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+              <Button type="submit" variant="contained" color="warning">
+                追加
+              </Button>
+            </Stack>
+          </Paper>
 
           <div>
             <h2 className="text-lg font-semibold">既存の試験 ({exams.length})</h2>
-            <ul className="space-y-2">
+            <Stack spacing={2}>
               {exams.map((exam: any) => (
-                <li key={exam.id} className="rounded border p-3">
+                <Paper key={exam.id} sx={{ p: 3 }}>
                   {editingExamId === exam.id ? (
-                    <div className="space-y-2">
-                      <input defaultValue={exam.examName} id={`edit-exam-name-${exam.id}`} className="w-full rounded border px-2" />
-                      <textarea defaultValue={exam.description} id={`edit-exam-desc-${exam.id}`} className="w-full rounded border px-2 min-h-[60px]" rows={2} />
-                      <div className="flex gap-2">
-                        <button onClick={() => {
-                          const nameInput = document.getElementById(`edit-exam-name-${exam.id}`) as HTMLInputElement;
-                          const descInput = document.getElementById(`edit-exam-desc-${exam.id}`) as HTMLTextAreaElement;
-                          handleUpdateExam(exam.id, nameInput.value, descInput.value);
-                        }} className="rounded bg-blue-600 px-3 py-1 text-sm text-white">保存</button>
-                        <button onClick={() => setEditingExamId(null)} className="rounded border px-3 py-1 text-sm">キャンセル</button>
-                      </div>
-                    </div>
+                    <Box sx={{ p: 2 }}>
+                      <Stack spacing={2}>
+                        <TextField defaultValue={exam.examName} id={`edit-exam-name-${exam.id}`} fullWidth size="small" label="試験名" />
+                        <TextField defaultValue={exam.description} id={`edit-exam-desc-${exam.id}`} fullWidth size="small" label="説明" multiline rows={2} />
+                        <Stack direction="row" spacing={2}>
+                          <Button onClick={() => {
+                            const nameInput = document.getElementById(`edit-exam-name-${exam.id}`) as HTMLInputElement;
+                            const descInput = document.getElementById(`edit-exam-desc-${exam.id}`) as HTMLTextAreaElement;
+                            handleUpdateExam(exam.id, nameInput.value, descInput.value);
+                          }} variant="contained" color="primary" size="small">保存</Button>
+                          <Button onClick={() => setEditingExamId(null)} variant="outlined" size="small">キャンセル</Button>
+                        </Stack>
+                      </Stack>
+                    </Box>
                   ) : (
-                    <div className="flex items-start justify-between">
-                      <div>
+                    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <Box>
                         <div className="text-sm font-medium">{exam.examName}</div>
                         <div className="text-xs text-slate-600">{exam.description}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => setEditingExamId(exam.id)} className="rounded border px-3 py-1 text-sm">編集</button>
-                        <button onClick={() => handleDeleteExam(exam.id)} className="rounded bg-red-600 px-3 py-1 text-sm text-white">削除</button>
-                      </div>
-                    </div>
+                      </Box>
+                      <Stack direction="row" spacing={2}>
+                        <Button onClick={() => setEditingExamId(exam.id)} variant="outlined" size="small">編集</Button>
+                        <Button onClick={() => handleDeleteExam(exam.id)} variant="contained" color="error" size="small">削除</Button>
+                      </Stack>
+                    </Stack>
                   )}
-                </li>
+                </Paper>
               ))}
-            </ul>
+            </Stack>
           </div>
-        </div>
+        </Stack>
       )}
 
       {activeTab === "chapters" && (
-        <div className="space-y-6">
-          <div className="mb-4">
-            <select
-              value={selectedExamId || ""}
-              onChange={(e) => setSelectedExamId(Number(e.target.value) || null)}
-              className="w-48 rounded border px-2"
-            >
-              <option value="">試験を選択</option>
-              {exams.map((exam) => (
-                <option key={exam.id} value={exam.id}>{exam.examName}</option>
-              ))}
-            </select>
-          </div>
+        <Stack spacing={6} >
 
-          <form onSubmit={handleAddChapter} className="space-y-2 rounded-md border p-4">
-            <div className="flex gap-2">
-              <input name="chapterNumber" placeholder="章番号" className="w-24 rounded border px-2" />
-              <input name="chapterTitle" placeholder="章タイトル" className="flex-1 rounded border px-2" />
-            </div>
-            <textarea name="coverage" placeholder="範囲（任意）" className="w-full rounded border px-2 min-h-[60px]" rows={2} />
-            <div>
-              <button className="rounded bg-amber-600 px-4 py-2 text-white">追加</button>
-            </div>
-          </form>
+          <Paper component="form" onSubmit={handleAddChapter} sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+            <Stack spacing={2}>
+              <Box sx={{ mb: 4 }}>
+                <FormControl size="small" fullWidth>
+                  <InputLabel>試験を選択</InputLabel>
+                  <Select
+                    value={selectedExamId || ""}
+                    onChange={(e) => setSelectedExamId(Number(e.target.value) || null)}
+                    label="試験を選択"
+                  >
+                    <MenuItem value="">試験を選択</MenuItem>
+                    {exams.map((exam) => (
+                      <MenuItem key={exam.id} value={exam.id}>{exam.examName}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+              <Stack direction="row" spacing={2}>
+                <TextField name="chapterNumber" placeholder="章番号" sx={{ width: 150 }} size="small" label="章番号" type="number" />
+                <TextField name="chapterTitle" placeholder="章タイトル" fullWidth size="small" label="章タイトル" />
+              </Stack>
+              <TextField name="coverage" placeholder="範囲（任意）" fullWidth size="small" label="範囲（任意）" multiline rows={2} />
+            </Stack>
+            <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+              <Button type="submit" variant="contained" color="warning">
+                追加
+              </Button>
+            </Stack>
+          </Paper>
 
           <div>
             <h2 className="text-lg font-semibold">既存の章 ({chapters.length})</h2>
-            <ul className="space-y-2">
+            <Stack spacing={2}>
               {chapters.map((chapter: any) => (
-                <li key={chapter.id} className="rounded border p-3">
+                <Paper key={chapter.id} sx={{ p: 3 }}>
                   {editingChapterId === chapter.id ? (
-                    <div className="space-y-2">
-                      <input type="number" defaultValue={chapter.chapterNumber} id={`edit-chapter-num-${chapter.id}`} className="w-24 rounded border px-2" />
-                      <input defaultValue={chapter.chapterTitle} id={`edit-chapter-title-${chapter.id}`} className="flex-1 rounded border px-2" />
-                      <textarea defaultValue={chapter.coverage || ""} id={`edit-chapter-coverage-${chapter.id}`} className="w-full rounded border px-2 min-h-[60px]" rows={2} />
-                      <div className="flex gap-2">
-                        <button onClick={() => {
-                          const numInput = document.getElementById(`edit-chapter-num-${chapter.id}`) as HTMLInputElement;
-                          const titleInput = document.getElementById(`edit-chapter-title-${chapter.id}`) as HTMLInputElement;
-                          const coverageInput = document.getElementById(`edit-chapter-coverage-${chapter.id}`) as HTMLTextAreaElement;
-                          handleUpdateChapter(chapter.id, Number(numInput.value), titleInput.value, coverageInput.value);
-                        }} className="rounded bg-blue-600 px-3 py-1 text-sm text-white">保存</button>
-                        <button onClick={() => setEditingChapterId(null)} className="rounded border px-3 py-1 text-sm">キャンセル</button>
-                      </div>
-                    </div>
+                    <Box sx={{ p: 2 }}>
+                      <Stack spacing={2}>
+                        <Stack direction="row" spacing={2}>
+                          <TextField type="number" defaultValue={chapter.chapterNumber} id={`edit-chapter-num-${chapter.id}`} sx={{ width: 150 }} size="small" label="章番号" />
+                          <TextField defaultValue={chapter.chapterTitle} id={`edit-chapter-title-${chapter.id}`} fullWidth size="small" label="章タイトル" />
+                        </Stack>
+                        <TextField defaultValue={chapter.coverage || ""} id={`edit-chapter-coverage-${chapter.id}`} fullWidth size="small" label="範囲" multiline rows={2} />
+                        <Stack direction="row" spacing={2}>
+                          <Button onClick={() => {
+                            const numInput = document.getElementById(`edit-chapter-num-${chapter.id}`) as HTMLInputElement;
+                            const titleInput = document.getElementById(`edit-chapter-title-${chapter.id}`) as HTMLInputElement;
+                            const coverageInput = document.getElementById(`edit-chapter-coverage-${chapter.id}`) as HTMLTextAreaElement;
+                            handleUpdateChapter(chapter.id, Number(numInput.value), titleInput.value, coverageInput.value);
+                          }} variant="contained" color="primary" size="small">保存</Button>
+                          <Button onClick={() => setEditingChapterId(null)} variant="outlined" size="small">キャンセル</Button>
+                        </Stack>
+                      </Stack>
+                    </Box>
                   ) : (
-                    <div className="flex items-start justify-between">
-                      <div>
+                    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <Box>
                         <div className="text-sm font-medium">第{chapter.chapterNumber}章: {chapter.chapterTitle}</div>
                         {chapter.coverage && <div className="text-xs text-slate-600">{chapter.coverage}</div>}
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => setEditingChapterId(chapter.id)} className="rounded border px-3 py-1 text-sm">編集</button>
-                        <button onClick={() => handleDeleteChapter(chapter.id)} className="rounded bg-red-600 px-3 py-1 text-sm text-white">削除</button>
-                      </div>
-                    </div>
+                      </Box>
+                      <Stack direction="row" spacing={2}>
+                        <Button onClick={() => setEditingChapterId(chapter.id)} variant="outlined" size="small">編集</Button>
+                        <Button onClick={() => handleDeleteChapter(chapter.id)} variant="contained" color="error" size="small">削除</Button>
+                      </Stack>
+                    </Stack>
                   )}
-                </li>
+                </Paper>
               ))}
-            </ul>
+            </Stack>
           </div>
-        </div>
+        </Stack>
       )}
 
       {activeTab === "questions" && (
-        <div className="space-y-6">
-          <div className="flex gap-4">
-            <select
-              value={selectedExamId || ""}
-              onChange={(e) => setSelectedExamId(Number(e.target.value) || null)}
-              className="w-48 rounded border px-2"
-            >
-              <option value="">試験を選択</option>
-              {exams.map((exam) => (
-                <option key={exam.id} value={exam.id}>{exam.examName}</option>
-              ))}
-            </select>
-            <select
-              value={selectedChapterIdForQuestions || ""}
-              onChange={(e) => setSelectedChapterIdForQuestions(Number(e.target.value) || null)}
-              className="w-48 rounded border px-2"
-              disabled={!selectedExamId}
-            >
-              <option value="">章を選択</option>
-              {chapters.map((chapter) => (
-                <option key={chapter.id} value={chapter.id}>{chapter.chapterTitle}</option>
-              ))}
-            </select>
-          </div>
+        <Stack spacing={6} sx={{ width: '800px' }}>
+          <Paper component="form" onSubmit={handleAddQuestion} sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+            <Stack spacing={3}>
+              <Stack direction="row" spacing={2}>
+                <FormControl size="small" fullWidth>
+                  <InputLabel>試験を選択</InputLabel>
+                  <Select
+                    value={selectedExamId || ""}
+                    onChange={(e) => setSelectedExamId(Number(e.target.value) || null)}
+                    label="試験を選択"
+                  >
+                    <MenuItem value="">試験を選択</MenuItem>
+                    {exams.map((exam) => (
+                      <MenuItem key={exam.id} value={exam.id}>{exam.examName}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" fullWidth disabled={!selectedExamId}>
+                  <InputLabel>章を選択</InputLabel>
+                  <Select
+                    value={selectedChapterIdForQuestions || ""}
+                    onChange={(e) => setSelectedChapterIdForQuestions(Number(e.target.value) || null)}
+                    label="章を選択"
+                  >
+                    <MenuItem value="">章を選択</MenuItem>
+                    {chapters.map((chapter) => (
+                      <MenuItem key={chapter.id} value={chapter.id}>{chapter.chapterTitle}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
+              <TextField name="questionText" placeholder="問題文" fullWidth size="small" label="問題文" multiline rows={3} />
+              <TextField name="choices" placeholder="選択肢（改行区切りで4つ）" fullWidth size="small" label="選択肢（改行区切りで4つ）" multiline rows={4} />
+              <Stack direction="row" spacing={2}>
+                <TextField name="answer" placeholder="正解の行番号 (1から)" sx={{ width: 200 }} size="small" label="正解の行番号" type="number" />
+                <Box sx={{ flex: 1 }} />
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel>難易度</InputLabel>
+                  <Select name="difficulty" label="難易度" defaultValue="1">
+                    <MenuItem value="1">難易度1</MenuItem>
+                    <MenuItem value="2">難易度2</MenuItem>
+                    <MenuItem value="3">難易度3</MenuItem>
+                    <MenuItem value="4">難易度4</MenuItem>
+                    <MenuItem value="5">難易度5</MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
+              <TextField name="explanation" placeholder="解説" fullWidth size="small" label="解説" multiline rows={3} />
+            </Stack>
+            <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+              <Button type="submit" variant="contained" color="warning">
+                追加
+              </Button>
+            </Stack>
+          </Paper>
 
-          <form onSubmit={handleAddQuestion} className="space-y-2 rounded-md border p-4">
-            <div className="flex gap-2">
-              <select name="difficulty" className="w-24 rounded border px-2">
-                <option value="1">難易度1</option>
-                <option value="2">難易度2</option>
-                <option value="3">難易度3</option>
-                <option value="4">難易度4</option>
-                <option value="5">難易度5</option>
-              </select>
-            </div>
-            <textarea name="questionText" placeholder="問題文" className="w-full rounded border px-2 min-h-[80px]" rows={3} />
-            <textarea name="choices" placeholder="選択肢（改行区切りで4つ）" className="w-full rounded border px-2 min-h-[80px]" rows={4} />
-            <div className="flex gap-2">
-              <input name="answer" placeholder="正解の行番号 (1から)" className="w-48 rounded border px-2" />
-            </div>
-            <textarea name="explanation" placeholder="解説" className="w-full rounded border px-2 min-h-[80px]" rows={3} />
-            <div>
-              <button className="rounded bg-amber-600 px-4 py-2 text-white">追加</button>
-            </div>
-          </form>
-
-          <div className="mt-6">
+          <div>
             <h2 className="text-lg font-semibold">既存の問題 ({questions.length})</h2>
             {loading ? (
               <p>読み込み中…</p>
             ) : (
-              <ul className="space-y-2">
+              <Stack spacing={2}>
                 {questions.map((q: any) => (
-                  <li key={q.id} className="flex items-start justify-between rounded border p-3">
-                    <div>
-                      <div className="text-sm font-medium">{q.id} — {q.questionText}</div>
+                  <Paper key={q.id} sx={{ p: 3 }}>
+                    <Box>
                       <div className="text-xs text-slate-600">{q.examName || q.qualificationId} / {q.chapterTitle || `章${q.chapterId}`} / 難易度:{q.difficulty}</div>
-                      <div className="mt-1 text-sm">{q.choices?.map((c:any,i:number)=>(<div key={i}>{i+1}. {c}</div>))}</div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <button onClick={() => handleEditQuestion(q)} className="rounded border px-3 py-1 text-sm">編集</button>
-                      <button onClick={() => handleDeleteQuestion(q.id)} className="rounded bg-red-600 px-3 py-1 text-sm text-white">削除</button>
-                    </div>
-                  </li>
+                      <div className="text-sm font-medium">{q.id} — {q.questionText}</div>
+                      <div className="mt-1 text-sm" style={{ padding: "5px 30px" }}>
+                        {q.choices?.map((c:any,i:number)=>(<div key={i}>{i+1}. {c}</div>))}
+                      </div>
+                    </Box>
+                    <Stack direction="row" spacing={2}>
+                      <Button onClick={() => handleEditQuestion(q)} variant="outlined" size="small">編集</Button>
+                      <Button onClick={() => handleDeleteQuestion(q.id)} variant="contained" color="error" size="small">削除</Button>
+                    </Stack>
+                  </Paper>
                 ))}
-              </ul>
+              </Stack>
             )}
           </div>
 
-          <div className="mt-6 rounded-md border p-4">
+          <Paper sx={{ mt: 6, p: 3, maxWidth: 800, mx: 'auto' }}>
             <h2 className="text-lg font-semibold">CSV一括インポート</h2>
-            <div className="mb-2 text-sm text-slate-600">
-              フォーマット: 試験名,章名,問題文,選択肢1,選択肢2,選択肢3,選択肢4,正解インデックス,解説,難易度
-            </div>
-            <div className="mb-2 text-xs text-slate-500">
-              ※ 試験名・章名が既存のデータと一致する場合は、その試験・章に登録されます
-            </div>
-            <div className="mb-2 text-xs text-slate-500">
-              例: ITパスポート試験,暗号技術,公開鍵暗号方式で正しい説明はどれか,暗号化と復号に同じ鍵を使う,公開鍵と秘密鍵の組を使う,平文をそのまま送信する,必ずハッシュ関数だけで暗号化する,2,公開鍵暗号方式では鍵の組を利用する,2
-            </div>
-            <textarea
+            <Box sx={{ mb: 2 }}>
+              <div className="text-sm text-slate-600">
+                フォーマット: 試験名,章名,問題文,選択肢1,選択肢2,選択肢3,選択肢4,正解インデックス,解説,難易度
+              </div>
+              <div className="mb-2 text-xs text-slate-500">
+                ※ 試験名・章名が既存のデータと一致する場合は、その試験・章に登録されます
+              </div>
+              <div className="mb-2 text-xs text-slate-500">
+                例: ITパスポート試験,暗号技術,公開鍵暗号方式で正しい説明はどれか,暗号化と復号に同じ鍵を使う,公開鍵と秘密鍵の組を使う,平文をそのまま送信する,必ずハッシュ関数だけで暗号化する,2,公開鍵暗号方式では鍵の組を利用する,2
+              </div>
+            </Box>
+            <TextField
               id="csv-text"
-              className="w-full rounded border px-2 py-1 font-mono text-sm"
-              placeholder="CSVテキストを貼り付け..."
+              fullWidth
+              multiline
               rows={6}
+              size="small"
+              placeholder="CSVテキストを貼り付け..."
+              sx={{ fontFamily: "monospace", fontSize: "0.875rem" }}
             />
-            <div className="mt-2">
-              <button
+            <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+              <Button
                 onClick={() => {
                   const csvText = (document.getElementById("csv-text") as HTMLTextAreaElement).value;
                   if (!csvText.trim()) {
@@ -493,54 +513,45 @@ export default function AdminPage() {
                   // 簡単化のためここに実装
                   handleCSVImport(csvText);
                 }}
-                className="rounded bg-blue-600 px-4 py-2 text-white"
+                variant="contained"
+                color="primary"
               >
                 CSVインポート
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+            </Stack>
+          </Paper>
+        </Stack>
       )}
 
-      {showEditModal && editingQuestion && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-semibold mb-4">問題を編集</h2>
-            <form onSubmit={handleUpdateQuestion} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">難易度</label>
-                <select name="difficulty" defaultValue={editingQuestion.difficulty} className="w-48 rounded border px-2">
-                  <option value="1">難易度1</option>
-                  <option value="2">難易度2</option>
-                  <option value="3">難易度3</option>
-                  <option value="4">難易度4</option>
-                  <option value="5">難易度5</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">問題文</label>
-                <textarea name="questionText" defaultValue={editingQuestion.questionText} className="w-full rounded border px-2 min-h-[80px]" rows={3} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">選択肢（改行区切りで4つ）</label>
-                <textarea name="choices" defaultValue={editingQuestion.choices?.join("\n") || ""} className="w-full rounded border px-2 min-h-[80px]" rows={4} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">正解の行番号 (1から)</label>
-                <input name="answer" type="number" defaultValue={editingQuestion.answer} className="w-48 rounded border px-2" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">解説</label>
-                <textarea name="explanation" defaultValue={editingQuestion.explanation || ""} className="w-full rounded border px-2 min-h-[80px]" rows={3} />
-              </div>
-              <div className="flex gap-3">
-                <button type="submit" className="rounded bg-blue-600 px-4 py-2 text-white">更新</button>
-                <button type="button" onClick={() => setShowEditModal(false)} className="rounded border px-4 py-2">キャンセル</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Dialog open={showEditModal} onClose={() => setShowEditModal(false)} maxWidth="md" fullWidth>
+        <DialogTitle>問題を編集</DialogTitle>
+        <DialogContent>
+          <Stack component="form" onSubmit={handleUpdateQuestion} spacing={3} sx={{ pt: 2 }}>
+            <TextField name="questionText" defaultValue={editingQuestion?.questionText} fullWidth size="small" label="問題文" multiline rows={3} />
+            <TextField name="choices" defaultValue={editingQuestion?.choices?.join("\n") || ""} fullWidth size="small" label="選択肢（改行区切りで4つ）" multiline rows={4} />
+            <Stack direction="row" spacing={2}>
+              <TextField name="answer" type="number" defaultValue={editingQuestion?.answer || 1} sx={{ width: 200 }} size="small" label="正解の行番号" />
+              <Box sx={{ flex: 1 }} />
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>難易度</InputLabel>
+                <Select name="difficulty" defaultValue={editingQuestion?.difficulty || "1"} label="難易度">
+                  <MenuItem value="1">難易度1</MenuItem>
+                  <MenuItem value="2">難易度2</MenuItem>
+                  <MenuItem value="3">難易度3</MenuItem>
+                  <MenuItem value="4">難易度4</MenuItem>
+                  <MenuItem value="5">難易度5</MenuItem>
+                </Select>
+              </FormControl>
+            </Stack>
+            <TextField name="explanation" defaultValue={editingQuestion?.explanation || ""} fullWidth size="small" label="解説" multiline rows={3} />
+            <Stack direction="row" spacing={2}>
+              <Button type="submit" variant="contained" color="primary">更新</Button>
+              <Box sx={{ flex: 1 }} />
+              <Button type="button" onClick={() => setShowEditModal(false)} variant="outlined">キャンセル</Button>
+            </Stack>
+          </Stack>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

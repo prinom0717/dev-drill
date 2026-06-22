@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { TextField, Button, Paper, Stack, Box } from "@mui/material";
 
 type Exam = { id: number; examName: string; description: string };
 
@@ -73,53 +74,78 @@ export default function AdminExamsClient() {
     <div className="prose mx-auto max-w-4xl p-6">
       <h1 className="text-xl font-semibold">試験管理</h1>
 
-      <form onSubmit={handleAdd} className="space-y-2 rounded-md border p-4">
-        <input name="examName" placeholder="試験名" className="w-full rounded border px-2" />
-        <input name="description" placeholder="説明" className="w-full rounded border px-2" />
-        <div>
-          <button className="rounded bg-amber-600 px-4 py-2 text-white">追加</button>
-        </div>
-      </form>
+      <Paper component="form" onSubmit={handleAdd} sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+        <Stack spacing={2}>
+          <TextField
+            name="examName"
+            placeholder="試験名"
+            fullWidth
+            size="small"
+            label="試験名"
+          />
+          <TextField
+            name="description"
+            placeholder="説明"
+            fullWidth
+            size="small"
+            label="説明"
+          />
+        </Stack>
+        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+          <Button type="submit" variant="contained" color="warning">
+            追加
+          </Button>
+        </Stack>
+      </Paper>
 
       <div className="mt-6">
         <h2 className="text-lg font-semibold">既存の試験 ({exams.length})</h2>
         {loading ? (
           <p>読み込み中…</p>
         ) : (
-          <ul className="space-y-2">
+          <Stack spacing={2}>
             {exams.map((exam: any) => (
-              <li key={exam.id} className="rounded border p-3">
+              <Paper key={exam.id} sx={{ p: 3 }}>
                 {editingId === exam.id ? (
-                  <div className="space-y-2">
-                    <input
-                      defaultValue={exam.examName}
-                      id={`edit-exam-name-${exam.id}`}
-                      className="w-full rounded border px-2"
-                    />
-                    <input
-                      defaultValue={exam.description}
-                      id={`edit-exam-desc-${exam.id}`}
-                      className="w-full rounded border px-2"
-                    />
-                    <div className="flex gap-2">
-                      <button
+                  <Paper sx={{ p: 2 }}>
+                    <Stack spacing={2}>
+                      <TextField
+                        defaultValue={exam.examName}
+                        id={`edit-exam-name-${exam.id}`}
+                        fullWidth
+                        size="small"
+                        label="試験名"
+                      />
+                      <TextField
+                        defaultValue={exam.description}
+                        id={`edit-exam-desc-${exam.id}`}
+                        fullWidth
+                        size="small"
+                        label="説明"
+                      />
+                    </Stack>
+                    <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+                      <Button
                         onClick={() => {
                           const nameInput = document.getElementById(`edit-exam-name-${exam.id}`) as HTMLInputElement;
                           const descInput = document.getElementById(`edit-exam-desc-${exam.id}`) as HTMLInputElement;
                           handleUpdate(exam.id, nameInput.value, descInput.value);
                         }}
-                        className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
+                        variant="contained"
+                        color="primary"
+                        size="small"
                       >
                         保存
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => setEditingId(null)}
-                        className="rounded border px-3 py-1 text-sm"
+                        variant="outlined"
+                        size="small"
                       >
                         キャンセル
-                      </button>
-                    </div>
-                  </div>
+                      </Button>
+                    </Stack>
+                  </Paper>
                 ) : (
                   <div className="flex items-start justify-between">
                     <div>
@@ -127,24 +153,27 @@ export default function AdminExamsClient() {
                       <div className="text-xs text-slate-600">{exam.description}</div>
                     </div>
                     <div className="flex gap-2">
-                      <button
+                      <Button
                         onClick={() => setEditingId(exam.id)}
-                        className="rounded border px-3 py-1 text-sm"
+                        variant="outlined"
+                        size="small"
                       >
                         編集
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => handleDelete(exam.id)}
-                        className="rounded bg-red-600 px-3 py-1 text-sm text-white"
+                        variant="contained"
+                        color="error"
+                        size="small"
                       >
                         削除
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
-              </li>
+              </Paper>
             ))}
-          </ul>
+          </Stack>
         )}
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { TextField, Button, Select, MenuItem, FormControl, InputLabel, Paper, Stack, Box } from "@mui/material";
 
 type Question = any;
 type Exam = { id: number; examName: string; description: string };
@@ -280,86 +281,136 @@ export default function AdminQuestionsClient() {
     <div className="prose mx-auto max-w-4xl p-6">
       <h1 className="text-xl font-semibold">問題管理</h1>
 
-      <form onSubmit={handleAdd} className="space-y-2 rounded-md border p-4">
-        <div className="flex gap-2">
-          <select
-            value={selectedExamId || ""}
-            onChange={(e) => setSelectedExamId(Number(e.target.value) || null)}
-            className="w-48 rounded border px-2"
-          >
-            <option value="">試験を選択</option>
-            {exams.map((exam) => (
-              <option key={exam.id} value={exam.id}>
-                {exam.examName}
-              </option>
-            ))}
-          </select>
-          <select
-            value={selectedChapterId || ""}
-            onChange={(e) => setSelectedChapterId(Number(e.target.value) || null)}
-            className="w-48 rounded border px-2"
-            disabled={!selectedExamId}
-          >
-            <option value="">章を選択</option>
-            {chapters.map((chapter) => (
-              <option key={chapter.id} value={chapter.id}>
-                {chapter.chapterTitle}
-              </option>
-            ))}
-          </select>
-          <input name="difficulty" placeholder="難易度" className="w-24 rounded border px-2" />
-        </div>
-        <input name="questionText" placeholder="問題文" className="w-full rounded border px-2" />
-        <input name="choices" placeholder="選択肢 (カンマ区切り)" className="w-full rounded border px-2" />
-        <div className="flex gap-2">
-          <input name="answer" placeholder="正解のインデックス (1から)" className="w-48 rounded border px-2" />
-          <input name="explanation" placeholder="解説" className="flex-1 rounded border px-2" />
-        </div>
-        <div>
-          <button className="rounded bg-amber-600 px-4 py-2 text-white">追加</button>
-        </div>
-      </form>
+      <Paper component="form" onSubmit={handleAdd} sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+        <Stack spacing={3}>
+          <Stack direction="row" spacing={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>試験を選択</InputLabel>
+              <Select
+                value={selectedExamId || ""}
+                onChange={(e) => setSelectedExamId(Number(e.target.value) || null)}
+                label="試験を選択"
+              >
+                <MenuItem value="">試験を選択</MenuItem>
+                {exams.map((exam) => (
+                  <MenuItem key={exam.id} value={exam.id}>
+                    {exam.examName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth size="small" disabled={!selectedExamId}>
+              <InputLabel>章を選択</InputLabel>
+              <Select
+                value={selectedChapterId || ""}
+                onChange={(e) => setSelectedChapterId(Number(e.target.value) || null)}
+                label="章を選択"
+              >
+                <MenuItem value="">章を選択</MenuItem>
+                {chapters.map((chapter) => (
+                  <MenuItem key={chapter.id} value={chapter.id}>
+                    {chapter.chapterTitle}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Stack>
+          <TextField
+            name="questionText"
+            placeholder="問題文"
+            fullWidth
+            size="small"
+            label="問題文"
+            multiline
+            rows={2}
+          />
+          <TextField
+            name="choices"
+            placeholder="選択肢 (カンマ区切り)"
+            fullWidth
+            size="small"
+            label="選択肢 (カンマ区切り)"
+          />
+          <Stack direction="row" spacing={2}>
+            <TextField
+              name="answer"
+              placeholder="正解のインデックス (1から)"
+              sx={{ width: 200 }}
+              size="small"
+              label="正解のインデックス"
+              type="number"
+            />
+            <Box sx={{ flex: 1 }} />
+            <TextField
+              name="difficulty"
+              placeholder="難易度"
+              sx={{ width: 150 }}
+              size="small"
+              label="難易度"
+              type="number"
+            />
+          </Stack>
+          <TextField
+            name="explanation"
+            placeholder="解説"
+            fullWidth
+            size="small"
+            label="解説"
+          />
+        </Stack>
+        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+          <Button type="submit" variant="contained" color="warning">
+            追加
+          </Button>
+        </Stack>
+      </Paper>
 
-      <div className="mt-6 rounded-md border p-4">
+      <Paper sx={{ mt: 6, p: 3, maxWidth: 800, mx: 'auto' }}>
         <h2 className="text-lg font-semibold">CSV一括インポート</h2>
-        <div className="mb-2 text-sm text-slate-600">
-          フォーマット: examId,chapterNumber,questionText,choice1,choice2,choice3,choice4,answer,explanation,difficulty
-        </div>
-        <div className="mb-2 text-xs text-slate-500">
-          ※ chapterNumberは選択した試験の章番号（1,2,3...）を指定してください
-        </div>
-        <div className="mb-2 text-xs text-slate-500">
-          例: 1,1,公開鍵暗号方式で正しい説明はどれか,暗号化と復号に同じ鍵を使う,公開鍵と秘密鍵の組を使う,平文をそのまま送信する,必ずハッシュ関数だけで暗号化する,2,公開鍵暗号方式では鍵の組を利用する,2
-        </div>
-        <div className="mb-2 text-xs text-slate-500">
-          ※ 試験を選択している場合、CSV内のexamIdは選択した試験で上書きされます
-        </div>
-        <textarea
+        <Box sx={{ mb: 2 }}>
+          <div className="text-sm text-slate-600">
+            フォーマット: examId,chapterNumber,questionText,choice1,choice2,choice3,choice4,answer,explanation,difficulty
+          </div>
+          <div className="mb-2 text-xs text-slate-500">
+            ※ chapterNumberは選択した試験の章番号（1,2,3...）を指定してください
+          </div>
+          <div className="mb-2 text-xs text-slate-500">
+            例: 1,1,公開鍵暗号方式で正しい説明はどれか,暗号化と復号に同じ鍵を使う,公開鍵と秘密鍵の組を使う,平文をそのまま送信する,必ずハッシュ関数だけで暗号化する,2,公開鍵暗号方式では鍵の組を利用する,2
+          </div>
+          <div className="text-xs text-slate-500">
+            ※ 試験を選択している場合、CSV内のexamIdは選択した試験で上書きされます
+          </div>
+        </Box>
+        <TextField
           value={csvText}
           onChange={(e) => setCsvText(e.target.value)}
           placeholder="CSVテキストを貼り付け..."
-          className="w-full rounded border px-2 py-1 font-mono text-sm"
+          fullWidth
+          multiline
           rows={6}
+          size="small"
+          sx={{ fontFamily: "monospace", fontSize: "0.875rem" }}
         />
         <div className="mt-2">
-          <button
+          <Button
             onClick={handleCSVImport}
             disabled={csvImporting}
-            className="rounded bg-blue-600 px-4 py-2 text-white disabled:bg-slate-400"
+            variant="contained"
+            color="primary"
           >
             {csvImporting ? "インポート中..." : "CSVインポート"}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Paper>
 
-      <div className="mt-6">
+      <Box sx={{ mt: 6 }}>
         <h2 className="text-lg font-semibold">既存の問題 ({questions.length})</h2>
         {loading ? (
           <p>読み込み中…</p>
         ) : (
-          <ul className="space-y-2">
+          <Stack spacing={2}>
             {questions.map((q: any) => (
-              <li key={q.id} className="flex items-start justify-between rounded border p-3">
+              <Paper key={q.id} sx={{ p: 3 }}>
                 <div>
                   <div className="text-sm font-medium">{q.id} — {q.questionText}</div>
                   <div className="text-xs text-slate-600">
@@ -368,14 +419,18 @@ export default function AdminQuestionsClient() {
                   <div className="mt-1 text-sm">{q.choices?.map((c:any,i:number)=>(<div key={i}>{i+1}. {c}</div>))}</div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <button onClick={() => handleEdit(q)} className="rounded border px-3 py-1 text-sm">編集</button>
-                  <button onClick={() => handleDelete(q.id)} className="rounded bg-red-600 px-3 py-1 text-sm text-white">削除</button>
+                  <Button onClick={() => handleEdit(q)} variant="outlined" size="small">
+                    編集
+                  </Button>
+                  <Button onClick={() => handleDelete(q.id)} variant="contained" color="error" size="small">
+                    削除
+                  </Button>
                 </div>
-              </li>
+              </Paper>
             ))}
-          </ul>
+          </Stack>
         )}
-      </div>
+      </Box>
     </div>
   );
 }

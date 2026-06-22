@@ -3,6 +3,7 @@ import Link from "next/link";
 import HeaderClient from "./_components/header-client";
 import { Geist, Geist_Mono, Noto_Serif_JP } from "next/font/google";
 import "./globals.css";
+import Registry from "./registry";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -69,7 +70,7 @@ export default function RootLayout({
             </div>
           </div>
         </header>
-        {children}
+        <Registry>{children}</Registry>
       </body>
     </html>
   );
