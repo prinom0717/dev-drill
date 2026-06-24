@@ -58,23 +58,23 @@ export default async function ResultPage({
 
         <div className={`mt-6 rounded-[1.5rem] border p-5 ${isCorrect ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"}`}>
           <p className="text-sm font-medium text-slate-600">問題</p>
-          <p className="mt-2 text-lg font-semibold text-slate-900">{question.questionText}</p>
+          <p className="mt-2 text-lg font-semibold text-slate-900" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{question.questionText}</p>
 
           <dl className="mt-5 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl bg-white/80 p-4">
               <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">あなたの解答</dt>
-              <dd className="mt-2 text-sm font-medium text-slate-900">{chosenAnswer}</dd>
+              <dd className="mt-2 text-sm font-medium text-slate-900" style={{ wordBreak: 'break-word' }}>{chosenAnswer}</dd>
             </div>
             <div className="rounded-2xl bg-white/80 p-4">
               <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">正解</dt>
-              <dd className="mt-2 text-sm font-medium text-slate-900">{correctAnswer}</dd>
+              <dd className="mt-2 text-sm font-medium text-slate-900" style={{ wordBreak: 'break-word' }}>{correctAnswer}</dd>
             </div>
           </dl>
         </div>
 
         <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">解説</p>
-          <p className="mt-2 leading-7 text-slate-700">{question.explanation}</p>
+          <p className="mt-2 leading-7 text-slate-700" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{question.explanation}</p>
         </div>
 
         <div className="mt-6 flex flex-wrap gap-3">

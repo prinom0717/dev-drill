@@ -168,7 +168,7 @@ export default function HistoryPage() {
                         {entry.totalAttempts}回中{entry.correctCount}回正解 ({entry.accuracy}%)
                       </span>
                     </div>
-                    <h3 className="mt-2 text-lg font-semibold text-slate-900">{entry.question?.questionText}</h3>
+                    <h3 className="mt-2 text-lg font-semibold text-slate-900" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{entry.question?.questionText}</h3>
                   </div>
                   <span
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${entry.latestAnswer.isCorrect ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}

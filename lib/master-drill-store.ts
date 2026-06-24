@@ -265,7 +265,7 @@ export async function getQuestionById(questionId: number) {
   }
 }
 
-export async function getQuestions(options?: { qualificationId?: string; chapterId?: number; limit?: number; random?: boolean; includeExamChapter?: boolean; }) {
+export async function getQuestions(options?: { qualificationId?: string; chapterId?: number; limit?: number; random?: boolean; includeExamChapter?: boolean; prioritizeUnanswered?: string; }) {
   try {
     if (options?.qualificationId && isNumericId(options.qualificationId)) {
       const examId = Number(options.qualificationId);
@@ -296,8 +296,29 @@ export async function getQuestions(options?: { qualificationId?: string; chapter
         return base as Question;
       });
 
-      if (options.random) mapped = mapped.sort(() => Math.random() - 0.5);
-      if (typeof options.limit === "number") mapped = mapped.slice(0, options.limit);
+      // 未出題問題を優先
+      if (options?.prioritizeUnanswered) {
+        const history = await getHistory(options.prioritizeUnanswered);
+        const answeredQuestionIds = history
+          .filter((entry: any) => entry.question?.qualificationId === String(examId))
+          .map((entry: any) => entry.questionId)
+          .filter((id: any, index: any, self: any) => self.indexOf(id) === index);
+
+        const unansweredQuestions = mapped.filter((q: any) => !answeredQuestionIds.includes(q.id));
+        const answeredQuestions = mapped.filter((q: any) => answeredQuestionIds.includes(q.id));
+
+        const targetCount = typeof options.limit === "number" ? options.limit : 10;
+        const shuffledUnanswered = unansweredQuestions.sort(() => Math.random() - 0.5);
+        const shuffledAnswered = answeredQuestions.sort(() => Math.random() - 0.5);
+
+        mapped = [
+          ...shuffledUnanswered.slice(0, targetCount),
+          ...shuffledAnswered.slice(0, targetCount - shuffledUnanswered.length)
+        ];
+      } else {
+        if (options.random) mapped = mapped.sort(() => Math.random() - 0.5);
+        if (typeof options.limit === "number") mapped = mapped.slice(0, options.limit);
+      }
       return mapped;
     }
     return [];
@@ -326,7 +347,11 @@ export async function addQuestion(input: { qualificationId: string; chapterId: n
 export async function updateQuestion(input: { id: number; fields: Partial<Omit<Question, "id" | "createdAt">> }) {
   try {
     const data: any = { ...input.fields };
+    if (data.questionText) data.question_text = data.questionText;
+    if (data.questionType) data.question_type = data.questionType;
     if (data.choices) data.choices = data.choices as any;
+    delete data.questionText;
+    delete data.questionType;
     const updated = await prisma.question.update({ where: { id: input.id }, data });
     return await getQuestionById(updated.id);
   } catch (e) {

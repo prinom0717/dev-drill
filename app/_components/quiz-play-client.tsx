@@ -76,32 +76,34 @@ export function QuizPlayClient({
         </div>
       ) : null}
 
-      <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_20px_50px_-44px_rgba(15,23,42,0.3)]">
-        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-          <span>Q{currentIndex + 1}</span>
-          <span className="h-1 w-1 rounded-full bg-amber-300" />
-          <span>難易度 {question.difficulty}</span>
-        </div>
-        <h3 className="mt-3 text-lg font-semibold text-slate-900">{question.questionText}</h3>
+      {!question ? null : (
+        <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_20px_50px_-44px_rgba(15,23,42,0.3)]">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+            <span>Q{currentIndex + 1}</span>
+            <span className="h-1 w-1 rounded-full bg-amber-300" />
+            <span>難易度 {question.difficulty}</span>
+          </div>
+          <h3 className="mt-3 text-lg font-semibold text-slate-900" style={{ margin: "0 10px", whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{question.questionText}</h3>
 
-        <div className="mt-4 grid gap-3">
-          {question.choices.map((choice, choiceIndex) => (
-            <button
-                key={choice}
-                type="button"
-                disabled={pendingQuestionId !== null}
-                onTouchStart={() => handleAnswer(question.id, choiceIndex + 1)}
-                onClick={() => handleAnswer(question.id, choiceIndex + 1)}
-                className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm text-slate-800 transition hover:border-amber-300 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-amber-700">
-                {choiceIndex + 1}
-                </span>
-              <span className="leading-6">{choice}</span>
-            </button>
-          ))}
-        </div>
-      </article>
+          <div className="mt-4 grid gap-3">
+            {question.choices.map((choice, choiceIndex) => (
+              <button
+                  key={choice}
+                  type="button"
+                  disabled={pendingQuestionId !== null}
+                  onTouchStart={() => handleAnswer(question.id, choiceIndex + 1)}
+                  onClick={() => handleAnswer(question.id, choiceIndex + 1)}
+                  className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm text-slate-800 transition hover:border-amber-300 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-amber-700">
+                  {choiceIndex + 1}
+                  </span>
+                <span className="leading-6" style={{ wordBreak: 'break-word' }}>{choice}</span>
+              </button>
+            ))}
+          </div>
+        </article>
+      )}
     </div>
   );
 }

@@ -25,8 +25,9 @@ export default function AdminPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedChapterIdForQuestions, setSelectedChapterIdForQuestions] = useState<number | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editingDifficulty, setEditingDifficulty] = useState<string>("1");
   const [showEditModal, setShowEditModal] = useState(false);
-  
+
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -224,6 +225,7 @@ export default function AdminPage() {
 
   async function handleEditQuestion(q: Question) {
     setEditingQuestion(q);
+    setEditingDifficulty(String(q.difficulty || "1"));
     setShowEditModal(true);
   }
 
@@ -463,8 +465,8 @@ export default function AdminPage() {
                   <Paper key={q.id} sx={{ p: 3 }}>
                     <Box>
                       <div className="text-xs text-slate-600">{q.examName || q.qualificationId} / {q.chapterTitle || `章${q.chapterId}`} / 難易度:{q.difficulty}</div>
-                      <div className="text-sm font-medium">{q.id} — {q.questionText}</div>
-                      <div className="mt-1 text-sm" style={{ padding: "5px 30px" }}>
+                      <div className="text-sm font-medium" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{q.id} — {q.questionText}</div>
+                      <div className="mt-1 text-sm" style={{ padding: "5px 30px", wordBreak: 'break-word' }}>
                         {q.choices?.map((c:any,i:number)=>(<div key={i}>{i+1}. {c}</div>))}
                       </div>
                     </Box>
@@ -523,7 +525,10 @@ export default function AdminPage() {
         </Stack>
       )}
 
-      <Dialog open={showEditModal} onClose={() => setShowEditModal(false)} maxWidth="md" fullWidth>
+      <Dialog open={showEditModal} onClose={() => {
+        setShowEditModal(false);
+        setEditingDifficulty("1");
+      }} maxWidth="md" fullWidth>
         <DialogTitle>問題を編集</DialogTitle>
         <DialogContent>
           <Stack component="form" onSubmit={handleUpdateQuestion} spacing={3} sx={{ pt: 2 }}>
@@ -534,7 +539,7 @@ export default function AdminPage() {
               <Box sx={{ flex: 1 }} />
               <FormControl size="small" sx={{ minWidth: 150 }}>
                 <InputLabel>難易度</InputLabel>
-                <Select name="difficulty" defaultValue={editingQuestion?.difficulty || "1"} label="難易度">
+                <Select name="difficulty" value={editingDifficulty} onChange={(e) => setEditingDifficulty(e.target.value)} label="難易度">
                   <MenuItem value="1">難易度1</MenuItem>
                   <MenuItem value="2">難易度2</MenuItem>
                   <MenuItem value="3">難易度3</MenuItem>

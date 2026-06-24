@@ -40,7 +40,7 @@ export default async function QualificationPage({
               学習履歴
             </Link>
             <Link
-              href={`/qualifications/${qualificationId}/play?mode=random`}
+              href={`/qualifications/${qualificationId}/play?mode=random&count=10`}
               className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
             >
               ランダム出題
@@ -85,7 +85,7 @@ export default async function QualificationPage({
         </div>
         <div className="flex justify-start sm:justify-end">
           <Link
-            href={`/qualifications/${qualificationId}/play?mode=random`}
+            href={`/qualifications/${qualificationId}/play?mode=random&count=10`}
             className="inline-flex rounded-full bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-700"
           >
             今すぐ解く
