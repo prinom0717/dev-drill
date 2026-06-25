@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CircularProgress, Box } from "@mui/material";
 
 import type { Question } from "@/lib/master-drill-store";
 
@@ -25,9 +26,11 @@ export function QuizPlayClient({
   const router = useRouter();
   const [pendingQuestionId, setPendingQuestionId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleAnswer(questionId: number, userAnswer: number) {
     setPendingQuestionId(questionId);
+    setIsSubmitting(true);
     setErrorMessage(null);
 
     const response = await fetch("/api/answer", {
@@ -43,6 +46,7 @@ export function QuizPlayClient({
 
     if (!response.ok) {
       setPendingQuestionId(null);
+      setIsSubmitting(false);
       setErrorMessage("解答の保存に失敗しました。");
       return;
     }
@@ -69,7 +73,27 @@ export function QuizPlayClient({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4">
+      {isSubmitting && (
+        <Box 
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            bgcolor: "rgba(255,255,255,0.7)",
+            zIndex: 10,
+            borderRadius: "1.5rem",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      )}
+      
       {errorMessage ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {errorMessage}

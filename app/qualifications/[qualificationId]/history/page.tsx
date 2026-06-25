@@ -9,13 +9,14 @@ export default async function HistoryPage({
   params: Promise<{ qualificationId: string }>;
 }) {
   const { qualificationId } = await params;
-  const qualification = await getQualificationById(qualificationId);
+  const [qualification, history] = await Promise.all([
+    getQualificationById(qualificationId),
+    getHistory(dummyUserId, { examId: Number(qualificationId) }),
+  ]);
 
   if (!qualification) {
     notFound();
   }
-
-  const history = (await getHistory(dummyUserId, { examId: Number(qualificationId) }));
   
   // フィルタリングされた履歴データから統計を計算
   const totalAttempts = history.reduce((sum: number, h: any) => sum + h.totalAttempts, 0);

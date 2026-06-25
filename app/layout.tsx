@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import HeaderClient from "./_components/header-client";
+import { NavigationLoading } from "./_components/navigation-loading";
 import { Geist, Geist_Mono, Noto_Serif_JP } from "next/font/google";
 import "./globals.css";
 import Registry from "./registry";
@@ -40,6 +41,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-screen flex flex-col touch-manipulation bg-[radial-gradient(circle_at_20%_0%,rgba(234,88,12,0.16),transparent_28%),radial-gradient(circle_at_100%_20%,rgba(15,23,42,0.08),transparent_20%),linear-gradient(180deg,#fff8ef_0%,#fffdf9_36%,#f4f1ea_100%)] text-slate-900 flex flex-col">
+        <NavigationLoading />
         <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/75 backdrop-blur-xl">
           <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <Link href="/" className="flex items-center gap-3 pr-3 font-semibold tracking-tight text-slate-900">
