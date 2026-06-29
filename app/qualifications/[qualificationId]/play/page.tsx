@@ -91,19 +91,22 @@ export default async function PlayPage({
     currentIndex = 0;
   } else {
     // random or chapter mode
-    const questions = await getQuestions({
-      qualificationId,
-      chapterId: mode === "chapter" ? chapterId : undefined,
-      random: false,
-      limit: count > 0 ? count : (mode === "random" ? 10 : undefined),
-      prioritizeUnanswered: mode === "random" ? dummyUserId : undefined,
-    });
-    orderedQuestions =
-      questionIdsFromUrl.length > 0
-        ? questionIdsFromUrl
-            .map((questionId) => questions.find((question: any) => question.id === questionId))
-            .filter((question: any): question is NonNullable<typeof question> => Boolean(question))
-        : questions;
+    if (questionIdsFromUrl.length > 0) {
+      // URL から questionIds が渡されている場合、個別に取得して整合性を保証
+      const questionsFromIds = await Promise.all(
+        questionIdsFromUrl.map((questionId) => getQuestionById(questionId))
+      );
+      orderedQuestions = questionsFromIds.filter((q): q is NonNullable<typeof q> => q !== null);
+    } else {
+      // 初回アクセス時は getQuestions() を使用
+      const questions = await getQuestions({
+        qualificationId,
+        chapterId: mode === "chapter" ? chapterId : undefined,
+        random: mode === "random",
+        limit: count > 0 ? count : (mode === "random" ? 10 : undefined),
+      });
+      orderedQuestions = questions;
+    }
     currentIndex = Number(query.index ?? "0");
     currentQuestion = orderedQuestions[currentIndex] ?? orderedQuestions[0] ?? null;
 

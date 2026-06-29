@@ -265,7 +265,7 @@ export async function getQuestionById(questionId: number) {
   }
 }
 
-export async function getQuestions(options?: { qualificationId?: string; chapterId?: number; limit?: number; random?: boolean; includeExamChapter?: boolean; prioritizeUnanswered?: string; }) {
+export async function getQuestions(options?: { qualificationId?: string; chapterId?: number; limit?: number; random?: boolean; includeExamChapter?: boolean; prioritizeUnanswered?: string; shuffle?: boolean; }) {
   try {
     if (options?.qualificationId && isNumericId(options.qualificationId)) {
       const examId = Number(options.qualificationId);
@@ -296,27 +296,94 @@ export async function getQuestions(options?: { qualificationId?: string; chapter
         return base as Question;
       });
 
-      // 未出題問題を優先
-      if (options?.prioritizeUnanswered) {
-        const history = await getHistory(options.prioritizeUnanswered);
-        const answeredQuestionIds = history
-          .filter((entry: any) => entry.question?.qualificationId === String(examId))
-          .map((entry: any) => entry.questionId)
-          .filter((id: any, index: any, self: any) => self.indexOf(id) === index);
-
-        const unansweredQuestions = mapped.filter((q: any) => !answeredQuestionIds.includes(q.id));
-        const answeredQuestions = mapped.filter((q: any) => answeredQuestionIds.includes(q.id));
-
+      // 新しい4段階優先度ロジック
+      if (options?.random) {
         const targetCount = typeof options.limit === "number" ? options.limit : 10;
-        const shuffledUnanswered = unansweredQuestions.sort(() => Math.random() - 0.5);
-        const shuffledAnswered = answeredQuestions.sort(() => Math.random() - 0.5);
-
-        mapped = [
-          ...shuffledUnanswered.slice(0, targetCount),
-          ...shuffledAnswered.slice(0, targetCount - shuffledUnanswered.length)
-        ];
+        const userId = options.prioritizeUnanswered || dummyUserId;
+        const history = await getHistory(userId, { examId });
+        
+        // 解答済み問題IDのセットを作成
+        const answeredQuestionIds = new Set(
+          history
+            .filter((entry: any) => entry.question?.qualificationId === String(examId))
+            .map((entry: any) => entry.questionId)
+        );
+        
+        // 間違えた問題IDのセットを作成
+        const wrongQuestionIds = new Set(
+          history
+            .filter((entry: any) => !entry.latestAnswer.isCorrect && entry.question?.qualificationId === String(examId))
+            .map((entry: any) => entry.questionId)
+        );
+        
+        // 優先度1: 未出題問題から10問取得し、その中から4問をランダム選択
+        const unansweredQuestions = mapped.filter((q: any) => !answeredQuestionIds.has(q.id));
+        const priority1Questions = unansweredQuestions
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 10)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 4);
+        
+        // 優先度2: 解答履歴から最も古い順に10問取得し、その中から2問をランダム選択
+        const answeredQuestions = mapped.filter((q: any) => answeredQuestionIds.has(q.id));
+        const answeredWithHistory = answeredQuestions.map((q: any) => {
+          const historyEntry = history.find((h: any) => h.questionId === q.id);
+          return {
+            question: q,
+            latestAnsweredAt: historyEntry?.latestAnswer?.answeredAt || null
+          };
+        });
+        const sortedByOldest = answeredWithHistory
+          .filter((item: any) => item.latestAnsweredAt)
+          .sort((a: any, b: any) => new Date(a.latestAnsweredAt).getTime() - new Date(b.latestAnsweredAt).getTime())
+          .slice(0, 10);
+        const priority2Questions = sortedByOldest
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 2)
+          .map((item: any) => item.question);
+        
+        // 優先度3: 間違えた問題の中から最も古い順に10問取得し、その中から2問をランダム選択
+        const wrongQuestions = mapped.filter((q: any) => wrongQuestionIds.has(q.id));
+        const wrongWithHistory = wrongQuestions.map((q: any) => {
+          const historyEntry = history.find((h: any) => h.questionId === q.id);
+          return {
+            question: q,
+            latestAnsweredAt: historyEntry?.latestAnswer?.answeredAt || null
+          };
+        });
+        const wrongSortedByOldest = wrongWithHistory
+          .filter((item: any) => item.latestAnsweredAt)
+          .sort((a: any, b: any) => new Date(a.latestAnsweredAt).getTime() - new Date(b.latestAnsweredAt).getTime())
+          .slice(0, 10);
+        const priority3Questions = wrongSortedByOldest
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 2)
+          .map((item: any) => item.question);
+        
+        // 使用済み問題IDを追跡
+        const usedQuestionIds = new Set<number>();
+        priority1Questions.forEach((q: any) => usedQuestionIds.add(q.id));
+        priority2Questions.forEach((q: any) => usedQuestionIds.add(q.id));
+        priority3Questions.forEach((q: any) => usedQuestionIds.add(q.id));
+        
+        // 優先度4: 残りを完全ランダムで10問になるように補充
+        const remainingQuestions = mapped.filter((q: any) => !usedQuestionIds.has(q.id));
+        const currentCount = priority1Questions.length + priority2Questions.length + priority3Questions.length;
+        const neededCount = Math.max(0, targetCount - currentCount);
+        const priority4Questions = remainingQuestions
+          .sort(() => Math.random() - 0.5)
+          .slice(0, neededCount);
+        
+        // 全ての問題を結合
+        mapped = [...priority1Questions, ...priority2Questions, ...priority3Questions, ...priority4Questions];
+        
+        // 最終的にシャッフル
+        if (options.shuffle !== false) {
+          mapped = mapped.sort(() => Math.random() - 0.5);
+        }
       } else {
-        if (options.random) mapped = mapped.sort(() => Math.random() - 0.5);
+        const shouldShuffle = options.shuffle !== false;
+        if (options.random && shouldShuffle) mapped = mapped.sort(() => Math.random() - 0.5);
         if (typeof options.limit === "number") mapped = mapped.slice(0, options.limit);
       }
       return mapped;

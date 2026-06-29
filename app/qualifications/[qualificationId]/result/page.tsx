@@ -42,7 +42,7 @@ export default async function ResultPage({
   const correctAnswer = question.choices[question.answer - 1] ?? "未設定";
   const nextQuestionId = questionIds[currentIndex + 1] ?? null;
   const nextLink = nextQuestionId
-    ? `/qualifications/${qualificationId}/play?mode=${query.mode === "random" ? "random" : "chapter"}&index=${currentIndex + 1}&questionIds=${questionIds.join(",")}${
+    ? `/qualifications/${qualificationId}/play?mode=${query.mode}&index=${currentIndex + 1}&questionIds=${questionIds.join(",")}${
         typeof query.chapterId === "string" ? `&chapterId=${query.chapterId}` : ""
       }`
     : `/qualifications/${qualificationId}`;
