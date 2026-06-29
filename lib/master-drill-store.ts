@@ -48,6 +48,7 @@ export type UserMarkRecord = {
 };
 
 export const dummyUserId = "dummy_user";
+export const BUFFER_TIME_MS = 86400000;
 
 function isNumericId(value: string | undefined) {
   return typeof value === "string" && /^[0-9]+$/.test(value);
@@ -334,7 +335,7 @@ export async function getQuestions(options?: { qualificationId?: string; chapter
           };
         });
         const sortedByOldest = answeredWithHistory
-          .filter((item: any) => item.latestAnsweredAt)
+          .filter((item: any) => item.latestAnsweredAt && new Date(item.latestAnsweredAt).getTime() <= Date.now() - BUFFER_TIME_MS)
           .sort((a: any, b: any) => new Date(a.latestAnsweredAt).getTime() - new Date(b.latestAnsweredAt).getTime())
           .slice(0, 10);
         const priority2Questions = sortedByOldest
@@ -352,7 +353,7 @@ export async function getQuestions(options?: { qualificationId?: string; chapter
           };
         });
         const wrongSortedByOldest = wrongWithHistory
-          .filter((item: any) => item.latestAnsweredAt)
+          .filter((item: any) => item.latestAnsweredAt && new Date(item.latestAnsweredAt).getTime() <= Date.now() - BUFFER_TIME_MS)
           .sort((a: any, b: any) => new Date(a.latestAnsweredAt).getTime() - new Date(b.latestAnsweredAt).getTime())
           .slice(0, 10);
         const priority3Questions = wrongSortedByOldest
