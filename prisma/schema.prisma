@@ -81,6 +81,18 @@ model UserMark {
   @@index([question_id])
 }
 
+model RejectedQuestion {
+  id            Int         @id @default(autoincrement())
+  chapter_id    Int
+  question_text String
+  choices       Json
+  answer        Int
+  explanation   String?
+  created_at    DateTime    @default(now())
+
+  @@index([chapter_id])
+}
+
 enum QuestionType {
   choice
 }

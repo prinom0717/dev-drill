@@ -85,7 +85,7 @@ export default async function PlayPage({
       qualificationId,
     });
 
-    const unansweredQuestions = allQuestions.filter((question: any) => !answeredQuestionIds.includes(question.id));
+    const unansweredQuestions = allQuestions.filter((question: any) => !answeredQuestionIds.includes(question.id)).sort(() => Math.random() - 0.5);
     orderedQuestions = unansweredQuestions;
     currentQuestion = unansweredQuestions[0] || null;
     currentIndex = 0;

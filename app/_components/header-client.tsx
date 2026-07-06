@@ -25,7 +25,7 @@ export default function HeaderClient() {
           <div className="absolute right-0 mt-2 w-52 rounded-md border bg-white p-2 shadow-md z-50">
             <Link href="/" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>ホーム</Link>
             <div className="border-t my-1"></div>
-            <Link href="/admin" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>出題管理</Link>
+            <Link href="/admin/questions" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>出題管理</Link>
             <div className="border-t my-1"></div>
             <Link href="/#qualifications" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>資格一覧</Link>
             <Link href="/history" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>履歴</Link>

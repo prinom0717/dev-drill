@@ -1,4 +1,5 @@
 import { getQuestions, addQuestion, updateQuestion, deleteQuestion } from "@/lib/master-drill-store";
+import { validateQuestion } from "@/lib/validation";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -32,6 +33,28 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
+    const { id, fields } = body;
+
+    // バリデーション
+    if (fields) {
+      const validationResult = validateQuestion({
+        questionText: fields.questionText || "",
+        choices: fields.choices || [],
+        answer: fields.answer || 1,
+        explanation: fields.explanation || "",
+        difficulty: fields.difficulty || 1,
+        examId: fields.qualificationId ? Number(fields.qualificationId) : null,
+        chapterId: fields.chapterId || null,
+      });
+
+      if (!validationResult.isValid) {
+        return Response.json(
+          { ok: false, message: "バリデーションエラー", errors: validationResult.errors },
+          { status: 400 }
+        );
+      }
+    }
+
     const updated = await updateQuestion(body);
     if (!updated) return Response.json({ ok: false, message: "Question not found" }, { status: 404 });
     return Response.json({ ok: true, question: updated });

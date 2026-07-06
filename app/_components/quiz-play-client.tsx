@@ -122,7 +122,7 @@ export function QuizPlayClient({
                 <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-amber-700">
                   {choiceIndex + 1}
                   </span>
-                <span className="leading-6" style={{ wordBreak: 'break-word' }}>{choice}</span>
+                <span className="leading-6" style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{choice}</span>
               </button>
             ))}
           </div>
