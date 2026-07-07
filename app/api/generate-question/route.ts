@@ -12,19 +12,23 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 function extractCodeBlock(content: string): string {
   // 優先順位: json → python → 汎用コードブロック
   const patterns = [
-    /```json\s*([\s\S]*?)\s*```/,
-    /```python\s*([\s\S]*?)\s*```/,
-    /```\s*([\s\S]*?)\s*```/
+    /```json\s*([\s\S]*?)\s*```/g,
+    /```python\s*([\s\S]*?)\s*```/g,
+    /```\s*([\s\S]*?)\s*```/g
   ];
 
   for (const pattern of patterns) {
-    const match = content.match(pattern);
-    if (match && match[1]) {
-      content = content.replace(pattern, "");
-    }
+    content = content.replace(pattern, (_, code) => {
+      // コードブロックの中身だけ取り出し
+      const inner = code.trim();
+
+      // 実際の改行を \n にエスケープ
+      const escaped = inner.replace(/\n/g, "\\n");
+
+      return escaped;
+    });
   }
 
-  // コードブロックが見つからない場合は元の文字列を返す
   return content.trim();
 }
 
