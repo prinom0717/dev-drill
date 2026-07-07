@@ -30,7 +30,7 @@ export type Question = {
 
 export type UserAnswerRecord = {
   id: number;
-  userId: string;
+  userId: number;
   questionId: number;
   userAnswer: string;
   isCorrect: boolean;
@@ -40,14 +40,13 @@ export type UserAnswerRecord = {
 
 export type UserMarkRecord = {
   id: number;
-  userId: string;
+  userId: number;
   questionId: number;
   markTitle: string;
   createdAt: string;
   question?: Question | null;
 };
 
-export const dummyUserId = "dummy_user";
 export const BUFFER_TIME_MS = 86400000;
 
 function isNumericId(value: string | undefined) {
@@ -266,7 +265,7 @@ export async function getQuestionById(questionId: number) {
   }
 }
 
-export async function getQuestions(options?: { qualificationId?: string; chapterId?: number; limit?: number; random?: boolean; includeExamChapter?: boolean; prioritizeUnanswered?: string; shuffle?: boolean; }) {
+export async function getQuestions(options?: { qualificationId?: string; chapterId?: number; limit?: number; random?: boolean; includeExamChapter?: boolean; prioritizeUnanswered?: number; shuffle?: boolean; }) {
   try {
     if (options?.qualificationId && isNumericId(options.qualificationId)) {
       const examId = Number(options.qualificationId);
@@ -300,7 +299,10 @@ export async function getQuestions(options?: { qualificationId?: string; chapter
       // 新しい4段階優先度ロジック
       if (options?.random) {
         const targetCount = typeof options.limit === "number" ? options.limit : 10;
-        const userId = options.prioritizeUnanswered || dummyUserId;
+        const userId = options.prioritizeUnanswered;
+        if (!userId) {
+          throw new Error("prioritizeUnanswered is required for random mode");
+        }
         const history = await getHistory(userId, { examId });
         
         // 解答済み問題IDのセットを作成
@@ -459,12 +461,16 @@ export async function bulkAddQuestion(inputs: Array<{ qualificationId: string; c
   return results;
 }
 
-export async function recordAnswer(input: { userId?: string; questionId: number; userAnswer: number; }) {
-  const userId = input.userId?.trim() || dummyUserId;
+export async function recordAnswer(input: { userId: number; questionId: number; userAnswer: number; }) {
+  const userId = input.userId;
   const question = await getQuestionById(input.questionId);
   const isCorrect = question.answer === input.userAnswer;
   try {
-    await prisma.user.upsert({ where: { id: userId }, update: {}, create: { id: userId } });
+    await prisma.user.upsert({ where: { id: userId }, update: {}, create: { 
+      userid: String(userId),
+      password_hash: "dummy", // 必須フィールド
+      role: "user" // 必須フィールド
+    } });
     const created = await prisma.userAnswer.create({ data: { user_id: userId, question_id: question.id, user_answer: String(input.userAnswer), is_correct: isCorrect } });
 
     const same = await prisma.userAnswer.findMany({ where: { user_id: userId, question_id: question.id }, orderBy: { answered_at: "desc" } });
@@ -478,7 +484,7 @@ export async function recordAnswer(input: { userId?: string; questionId: number;
   }
 }
 
-export async function getHistory(userId = dummyUserId, options?: { examId?: number; chapterId?: number }) {
+export async function getHistory(userId: number, options?: { examId?: number; chapterId?: number }) {
   try {
     const rows = await prisma.userAnswer.findMany({ 
       where: { user_id: userId }, 
@@ -546,7 +552,7 @@ export async function getHistory(userId = dummyUserId, options?: { examId?: numb
   }
 }
 
-export async function getQuestionHistoryCount(userId: string, questionId: number) {
+export async function getQuestionHistoryCount(userId: number, questionId: number) {
   try {
     return await prisma.userAnswer.count({ where: { user_id: userId, question_id: questionId } });
   } catch (e) {
@@ -554,7 +560,7 @@ export async function getQuestionHistoryCount(userId: string, questionId: number
   }
 }
 
-export async function getMarks(userId = dummyUserId) {
+export async function getMarks(userId: number) {
   try {
     const rows = await prisma.userMark.findMany({ where: { user_id: userId }, include: { question: true }, orderBy: { created_at: "desc" } });
     return rows.map((r: any) => ({ id: r.id, userId: r.user_id, questionId: r.question_id, markTitle: r.mark_title ?? "", createdAt: r.created_at.toISOString(), question: r.question ? { id: r.question.id, qualificationId: String(r.question.chapter_id), chapterId: r.question.chapter_id, questionType: r.question.question_type as QuestionType, questionText: r.question.question_text, choices: Array.isArray(r.question.choices) ? (r.question.choices as string[]) : [], answer: r.question.answer, explanation: r.question.explanation ?? "", difficulty: r.question.difficulty ?? 1, createdAt: r.question.created_at.toISOString() } : null }));
@@ -563,10 +569,17 @@ export async function getMarks(userId = dummyUserId) {
   }
 }
 
-export async function addMark(input: { userId?: string; questionId: number; markTitle?: string; }) {
-  const userId = input.userId?.trim() || dummyUserId;
+export async function addMark(input: { userId?: number; questionId: number; markTitle?: string; }) {
+  const userId = input.userId;
+  if (typeof userId !== "number") {
+    return { ok: false as const, message: "User ID is required." };
+  }
   try {
-    await prisma.user.upsert({ where: { id: userId }, update: {}, create: { id: userId } });
+    await prisma.user.upsert({ where: { id: userId }, update: {}, create: { 
+      userid: String(userId),
+      password_hash: "dummy", // 必須フィールド
+      role: "user" // 必須フィールド
+    }});
     const currentCount = await prisma.userMark.count({ where: { user_id: userId, question_id: input.questionId } });
     if (currentCount >= 5) return { ok: false as const, message: "同じ問題には最大5件まで登録できます。" };
     const created = await prisma.userMark.create({ data: { user_id: userId, question_id: input.questionId, mark_title: input.markTitle ?? undefined } });
@@ -576,8 +589,8 @@ export async function addMark(input: { userId?: string; questionId: number; mark
   }
 }
 
-export async function removeMark(input: { userId?: string; questionId: number; markId?: number; }) {
-  const userId = input.userId?.trim() || dummyUserId;
+export async function removeMark(input: { userId?: number; questionId: number; markId?: number; }) {
+  const userId = input.userId;
   try {
     if (typeof input.markId === "number") {
       const deleted = await prisma.userMark.deleteMany({ where: { id: input.markId, user_id: userId, question_id: input.questionId } });
@@ -590,7 +603,7 @@ export async function removeMark(input: { userId?: string; questionId: number; m
   }
 }
 
-export async function getStats(userId = dummyUserId) {
+export async function getStats(userId: number) {
   try {
     const history = await getHistory(userId);
     const totalQuestions = history.length;

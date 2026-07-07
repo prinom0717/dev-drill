@@ -273,8 +273,6 @@ export default function AdminPage() {
 
   // AI作成関連
   async function handleAIGenerate() {
-    console.log("difficulty typeof:", typeof aiGeneratedQuestion.difficulty);
-    console.log("difficulty value:", aiGeneratedQuestion.difficulty);
     if (!selectedExamId || !selectedChapterIdForQuestions) {
       alert("試験と章を選択してください");
       return;

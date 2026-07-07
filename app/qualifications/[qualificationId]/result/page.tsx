@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import {
-  dummyUserId,
   getQuestionById,
   getQualificationById,
 } from "@/lib/master-drill-store";
@@ -92,7 +91,7 @@ export default async function ResultPage({
           この問題を解き直す
         </Link>
         <Link
-          href={`/qualifications/${qualificationId}/history?userId=${dummyUserId}`}
+          href={`/qualifications/${qualificationId}/history`}
           className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-amber-300 hover:text-amber-700"
         >
           履歴を見る

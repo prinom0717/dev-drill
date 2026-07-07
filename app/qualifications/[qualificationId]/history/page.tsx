@@ -1,17 +1,23 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
-import { dummyUserId, getHistory, getQualificationById, getStats } from "@/lib/master-drill-store";
+import { getHistory, getQualificationById, getStats } from "@/lib/master-drill-store";
+import { getSessionUser } from "@/lib/auth/server-session";
 
 export default async function HistoryPage({
   params,
 }: {
   params: Promise<{ qualificationId: string }>;
 }) {
+  const user = await getSessionUser();
+  if (!user) {
+    redirect("/login");
+  }
+
   const { qualificationId } = await params;
   const [qualification, history] = await Promise.all([
     getQualificationById(qualificationId),
-    getHistory(dummyUserId, { examId: Number(qualificationId) }),
+    getHistory(user.id, { examId: Number(qualificationId) }),
   ]);
 
   if (!qualification) {
@@ -36,7 +42,7 @@ export default async function HistoryPage({
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">History</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">学習履歴</h1>
-            <p className="mt-3 text-sm text-slate-600">ダミー user_id の解答履歴を確認できます。</p>
+            <p className="mt-3 text-sm text-slate-600">あなたの解答履歴を確認できます。</p>
           </div>
 
           <div className="flex flex-wrap gap-3">
@@ -82,7 +88,7 @@ export default async function HistoryPage({
       <section className="space-y-4">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">最近の解答</h2>
-          <p className="mt-1 text-sm text-slate-600">履歴はダミー user_id の記録を最新順で表示しています。</p>
+          <p className="mt-1 text-sm text-slate-600">履歴は最新順で表示しています。</p>
         </div>
 
         {history.length === 0 ? (

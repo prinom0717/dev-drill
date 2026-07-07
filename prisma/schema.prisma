@@ -46,7 +46,7 @@ model Question {
 
 model UserAnswer {
   id          Int      @id @default(autoincrement())
-  user_id     String
+  user_id     Int
   question_id Int
   user_answer String?
   is_correct  Boolean
@@ -59,18 +59,23 @@ model UserAnswer {
 }
 
 model User {
-  id         String       @id
-  name       String?
-  email      String?      @unique
-  pass       String?
-  created_at DateTime     @default(now())
-  answers    UserAnswer[]
-  marks      UserMark[]
+  id              Int          @id @default(autoincrement())
+  userid          String       @unique
+  email           String?      @unique
+  password_hash   String
+  role            String
+  failed_attempts Int          @default(0)
+  locked          Boolean      @default(false)
+  deleted         Boolean      @default(false)
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+  answers         UserAnswer[]
+  marks           UserMark[]
 }
 
 model UserMark {
   id          Int      @id @default(autoincrement())
-  user_id     String
+  user_id     Int
   question_id Int
   mark_title  String?
   created_at  DateTime @default(now())
@@ -82,13 +87,13 @@ model UserMark {
 }
 
 model RejectedQuestion {
-  id            Int         @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   chapter_id    Int
   question_text String
   choices       Json
   answer        Int
   explanation   String?
-  created_at    DateTime    @default(now())
+  created_at    DateTime @default(now())
 
   @@index([chapter_id])
 }

@@ -1,12 +1,16 @@
 import Link from "next/link";
 
-import { dummyUserId, getQualifications, getStats } from "@/lib/master-drill-store";
+import { getQualifications, getStats } from "@/lib/master-drill-store";
+import { getSessionUser } from "@/lib/auth/server-session";
 
 export default async function Home() {
-  const [qualifications, stats] = await Promise.all([
-    getQualifications(),
-    getStats(dummyUserId),
-  ]);
+  const user = await getSessionUser();
+  const qualifications = await getQualifications();
+
+  let stats = { totalAnswers: 0, correctAnswers: 0, accuracy: 0 };
+  if (user) {
+    stats = await getStats(user.id);
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
@@ -21,31 +25,43 @@ export default async function Home() {
                 資格試験を、章別でもランダムでも、すぐ解ける。
               </h1>
               <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-                まずは選択問題に集中し、正誤判定と解説、学習履歴までをひと通り回せる最初の版です。後からログイン、弱点分析、記述問題、管理機能へ広げられます。
+                まずは選択問題に集中し、正誤判定と解説、学習履歴までをひと通り回せる最初の版です。後日、弱点分析、記述問題を実装予定です。
               </p>
             </div>
           </div>
 
-          <div className="grid gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-950 p-5 text-slate-100">
-            <div>
-              <p className="text-sm text-slate-400">ダミー user_id</p>
-              <p className="mt-1 text-2xl font-semibold">{dummyUserId}</p>
+          {user ? (
+            <div className="grid gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-950 p-5 text-slate-100">
+              <div>
+                <p className="text-sm text-slate-400">ユーザーID</p>
+                <p className="mt-1 text-2xl font-semibold">{user.userid}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-2xl bg-white/5 p-3">
+                  <p className="text-xs text-slate-400">総解答数</p>
+                  <p className="mt-1 text-xl font-semibold">{stats.totalAnswers }</p>
+                </div>
+                <div className="rounded-2xl bg-white/5 p-3">
+                  <p className="text-xs text-slate-400">正答数</p>
+                  <p className="mt-1 text-xl font-semibold">{stats.correctAnswers }</p>
+                </div>
+                <div className="rounded-2xl bg-white/5 p-3">
+                  <p className="text-xs text-slate-400">正答率</p>
+                  <p className="mt-1 text-xl font-semibold">{stats.accuracy}%</p>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-2xl bg-white/5 p-3">
-                <p className="text-xs text-slate-400">総解答数</p>
-                <p className="mt-1 text-xl font-semibold">{stats.totalAnswers }</p>
-              </div>
-              <div className="rounded-2xl bg-white/5 p-3">
-                <p className="text-xs text-slate-400">正答数</p>
-                <p className="mt-1 text-xl font-semibold">{stats.correctAnswers }</p>
-              </div>
-              <div className="rounded-2xl bg-white/5 p-3">
-                <p className="text-xs text-slate-400">正答率</p>
-                <p className="mt-1 text-xl font-semibold">{stats.accuracy}%</p>
-              </div>
+          ) : (
+            <div className="grid gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-slate-600">
+              <p className="text-sm font-medium">ログインして学習を始めましょう</p>
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
+              >
+                ログイン
+              </Link>
             </div>
-          </div>
+          )}
         </div>
       </section>
 

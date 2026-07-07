@@ -1,8 +1,17 @@
-import { dummyUserId, recordAnswer } from "@/lib/master-drill-store";
+import { recordAnswer } from "@/lib/master-drill-store";
+import { requireAuth, isAuthError } from "@/lib/auth/require-auth";
 
 export async function POST(request: Request) {
+  // 認証チェック
+  const authResult = await requireAuth(request);
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
+  const user = authResult;
+
   const body = (await request.json().catch(() => null)) as
-    | { questionId?: number; userAnswer?: number | string; userId?: string }
+    | { questionId?: number; userAnswer?: number | string }
     | null;
 
   if (!body?.questionId || body.userAnswer === undefined) {
@@ -10,7 +19,7 @@ export async function POST(request: Request) {
   }
 
   const answer = await recordAnswer({
-    userId: body.userId ?? dummyUserId,
+    userId: user.id,
     questionId: body.questionId,
     userAnswer: Number(body.userAnswer),
   });

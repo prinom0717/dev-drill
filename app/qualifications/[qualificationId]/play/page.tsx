@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { QuizPlayClient } from "@/app/_components/quiz-play-client";
 import {
-  dummyUserId,
   getChapterById,
-  getHistory,  // 追加
+  getHistory,
   getQualificationById,
-  getQuestionById,  // 追加
+  getQuestionById,
   getQuestions,
 } from "@/lib/master-drill-store";
+import { getSessionUser } from "@/lib/auth/server-session";
 
 function parseQuestionIds(rawValue: string | string[] | undefined) {
   if (typeof rawValue !== "string") {
@@ -29,6 +29,11 @@ export default async function PlayPage({
   params: Promise<{ qualificationId: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const user = await getSessionUser();
+  if (!user) {
+    redirect("/login");
+  }
+
   const { qualificationId } = await params;
   const query = await searchParams;
   const qualification = await getQualificationById(qualificationId);
@@ -58,7 +63,7 @@ export default async function PlayPage({
     }
   } else if (mode === "mistakes") {
     // 不正解問題のみのモード
-    const history = await getHistory(dummyUserId);
+    const history = await getHistory(user.id);
     const wrongAnswers = history
       .filter((entry: any) => !entry.latestAnswer.isCorrect && entry.question?.qualificationId === qualificationId)
       .map((entry: any) => entry.questionId)
@@ -76,7 +81,7 @@ export default async function PlayPage({
     currentIndex = 0;
   } else if (mode === "unanswered") {
     // 未出題問題のみのモード
-    const history = await getHistory(dummyUserId, { examId: Number(qualificationId) });
+    const history = await getHistory(user.id, { examId: Number(qualificationId) });
     const answeredQuestionIds = history
       .map((entry: any) => entry.questionId)
       .filter((id: any, index: any, self: any) => self.indexOf(id) === index); // 重複を除去
@@ -104,6 +109,7 @@ export default async function PlayPage({
         chapterId: mode === "chapter" ? chapterId : undefined,
         random: mode === "random",
         limit: count > 0 ? count : (mode === "random" ? 10 : undefined),
+        prioritizeUnanswered: user.id,
       });
       orderedQuestions = questions;
     }

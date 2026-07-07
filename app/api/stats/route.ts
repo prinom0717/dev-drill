@@ -1,8 +1,14 @@
-import { dummyUserId, getStats } from "@/lib/master-drill-store";
+import { getStats } from "@/lib/master-drill-store";
+import { requireAuth, isAuthError } from "@/lib/auth/require-auth";
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const userId = url.searchParams.get("userId") ?? dummyUserId;
+  // 認証チェック
+  const authResult = await requireAuth(request);
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
 
-  return Response.json(await getStats(userId));
+  const user = authResult;
+
+  return Response.json(await getStats(user.id));
 }
