@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CircularProgress, Box } from "@mui/material";
+import { CircularProgress, Box, Button } from "@mui/material";
 
 import type { Question } from "@/lib/master-drill-store";
+import { QuestionIssueModal } from "./question-issue-modal";
 
 type Props = {
   qualificationId: string;
@@ -27,6 +28,7 @@ export function QuizPlayClient({
   const [pendingQuestionId, setPendingQuestionId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [issueModalOpen, setIssueModalOpen] = useState(false);
 
   async function handleAnswer(questionId: number, userAnswer: number) {
     setPendingQuestionId(questionId);
@@ -102,10 +104,21 @@ export function QuizPlayClient({
 
       {!question ? null : (
         <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_20px_50px_-44px_rgba(15,23,42,0.3)]">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-            <span>Q{currentIndex + 1}</span>
-            <span className="h-1 w-1 rounded-full bg-amber-300" />
-            <span>難易度 {question.difficulty}</span>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+              <span>Q{currentIndex + 1}</span>
+              <span className="h-1 w-1 rounded-full bg-amber-300" />
+              <span>難易度 {question.difficulty}</span>
+            </div>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setIssueModalOpen(true)}
+              disabled={pendingQuestionId !== null}
+              sx={{ fontSize: '0.75rem' }}
+            >
+              不備を起票
+            </Button>
           </div>
           <h3 className="mt-3 text-lg font-semibold text-slate-900" style={{ margin: "0 10px", whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{question.questionText}</h3>
 
@@ -127,6 +140,14 @@ export function QuizPlayClient({
             ))}
           </div>
         </article>
+      )}
+
+      {question && (
+        <QuestionIssueModal
+          open={issueModalOpen}
+          onClose={() => setIssueModalOpen(false)}
+          questionId={question.id}
+        />
       )}
     </div>
   );

@@ -31,3 +31,7 @@ export async function requireRole(
 export function isAuthError(value: SessionUser | NextResponse): value is NextResponse {
   return value instanceof NextResponse;
 }
+
+export async function requireAdmin(request: Request): Promise<SessionUser | NextResponse> {
+  return requireRole(request, ["admin"]);
+}

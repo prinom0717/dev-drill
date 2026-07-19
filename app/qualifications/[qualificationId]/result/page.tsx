@@ -5,6 +5,7 @@ import {
   getQuestionById,
   getQualificationById,
 } from "@/lib/master-drill-store";
+import { QuestionIssueButton } from "@/lib/question-issue-button";
 
 export default async function ResultPage({
   params,
@@ -72,7 +73,7 @@ export default async function ResultPage({
         </div>
 
         <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">解説</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">解説</p>
           <p className="mt-2 leading-7 text-slate-700" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{question.explanation}</p>
         </div>
 
@@ -96,6 +97,7 @@ export default async function ResultPage({
         >
           履歴を見る
         </Link>
+        <QuestionIssueButton questionId={questionId} />
       </div>
       </section>
     </main>

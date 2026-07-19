@@ -12,6 +12,7 @@ model Exam {
   description String?
   created_at  DateTime      @default(now())
   chapters    ExamChapter[]
+  questionIssues QuestionIssue[]
 }
 
 model ExamChapter {
@@ -40,6 +41,7 @@ model Question {
   chapter       ExamChapter  @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
   userAnswers   UserAnswer[]
   userMarks     UserMark[]
+  issues        QuestionIssue[]
 
   @@index([chapter_id])
 }
@@ -71,6 +73,7 @@ model User {
   updated_at      DateTime     @updatedAt
   answers         UserAnswer[]
   marks           UserMark[]
+  issues          QuestionIssue[]
 }
 
 model UserMark {
@@ -100,4 +103,27 @@ model RejectedQuestion {
 
 enum QuestionType {
   choice
+}
+
+model QuestionIssue {
+  id            Int      @id @default(autoincrement())
+  exam_id       Int?
+  question_id   Int?
+  user_id       Int
+  issue_type    String
+  description   String
+  status        String   @default("OPEN")
+  admin_comment String?
+  fixed_content String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  exam     Exam?     @relation(fields: [exam_id], references: [id], onDelete: Cascade)
+  question Question? @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@index([exam_id])
+  @@index([question_id])
+  @@index([user_id])
+  @@index([status])
 }

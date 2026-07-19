@@ -5,6 +5,7 @@ import {
   getChaptersForQualification,
   getQualificationById,
 } from "@/lib/master-drill-store";
+import { QualificationClient } from "@/app/_components/qualification-client";
 
 export default async function QualificationPage({
   params,
@@ -53,6 +54,7 @@ export default async function QualificationPage({
             >
               未出題問題
             </Link>
+            <QualificationClient qualificationId={qualificationId} />
           </div>
         </div>
       </section>
@@ -60,7 +62,7 @@ export default async function QualificationPage({
       <section className="space-y-4">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">章別に解く</h2>
-          <p className="mt-1 text-sm text-slate-600">章を選ぶと、その範囲の問題だけを出題します。</p>
+          <p className="mt-1 text-sm text-slate-600">章を選ぶと、その範囲の問題だけを出題します。</p>          
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">

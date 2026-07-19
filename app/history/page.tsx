@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Exam } from "@/lib/exams/types"; 
 
-type Exam = { id: number; examName: string; description: string };
 type Chapter = { id: number; examId: number; chapterNumber: number; chapterTitle: string; coverage: string | null };
 
 export default function HistoryPage() {
