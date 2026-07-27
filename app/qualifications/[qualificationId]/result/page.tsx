@@ -23,7 +23,7 @@ export default async function ResultPage({
   }
 
   const questionId = Number(query.questionId ?? "0");
-  const userAnswer = Number(query.userAnswer ?? "0");
+  const userAnswer = query.userAnswer ?? "0";
   const isCorrect = query.isCorrect === "1";
   const currentIndex = Number(query.index ?? "0");
   const questionIds = typeof query.questionIds === "string"
@@ -38,8 +38,19 @@ export default async function ResultPage({
     notFound();
   }
 
-  const chosenAnswer = question.choices[userAnswer - 1] ?? "未回答";
-  const correctAnswer = question.choices[question.answer - 1] ?? "未設定";
+  // 問題タイプによる回答表示の分岐
+  let chosenAnswer: string;
+  let correctAnswer: string;
+
+  if (question.questionType === "descriptive") {
+    // 記述式問題
+    chosenAnswer = String(userAnswer) || "未回答";
+    correctAnswer = question.answer || "未設定";
+  } else {
+    // 選択式問題
+    chosenAnswer = question.choices[Number(userAnswer) - 1] ?? "未回答";
+    correctAnswer = question.choices[Number(question.answer) - 1] ?? "未設定";
+  }
   const nextQuestionId = questionIds[currentIndex + 1] ?? null;
   const nextLink = nextQuestionId
     ? `/qualifications/${qualificationId}/play?mode=${query.mode}&index=${currentIndex + 1}&questionIds=${questionIds.join(",")}${

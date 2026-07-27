@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 
-export type QuestionType = "choice";
+export type QuestionType = "choice" | "descriptive";
 
 export type Qualification = {
   id: string;
@@ -22,7 +22,8 @@ export type Question = {
   questionType: QuestionType;
   questionText: string;
   choices: string[];
-  answer: number;
+  answer: string;
+  acceptableAnswers?: string[];
   explanation: string;
   difficulty: number;
   createdAt: string;
@@ -45,6 +46,12 @@ export type UserMarkRecord = {
   markTitle: string;
   createdAt: string;
   question?: Question | null;
+};
+
+export type AIGradeResult = {
+  isCorrect: boolean;
+  confidence?: number;
+  reasoning?: string;
 };
 
 export const BUFFER_TIME_MS = 86400000;
@@ -255,7 +262,8 @@ export async function getQuestionById(questionId: number) {
       questionType: q.question_type as QuestionType,
       questionText: q.question_text,
       choices: Array.isArray(q.choices) ? (q.choices as string[]) : [],
-      answer: q.answer,
+      answer: String(q.answer),
+      acceptableAnswers: Array.isArray(q.acceptable_answers) ? (q.acceptable_answers as string[]) : undefined,
       explanation: q.explanation ?? "",
       difficulty: q.difficulty ?? 1,
       createdAt: q.created_at.toISOString(),
@@ -283,7 +291,8 @@ export async function getQuestions(options?: { qualificationId?: string; chapter
           questionType: q.question_type as QuestionType,
           questionText: q.question_text,
           choices: Array.isArray(q.choices) ? (q.choices as string[]) : [],
-          answer: q.answer,
+          answer: String(q.answer),
+          acceptableAnswers: Array.isArray(q.acceptable_answers) ? (q.acceptable_answers as string[]) : undefined,
           explanation: q.explanation ?? "",
           difficulty: q.difficulty ?? 1,
           createdAt: q.created_at.toISOString(),
@@ -397,7 +406,7 @@ export async function getQuestions(options?: { qualificationId?: string; chapter
   }
 }
 
-export async function addQuestion(input: { qualificationId: string; chapterId: number; questionType: QuestionType; questionText: string; choices: string[]; answer: number; explanation?: string; difficulty?: number; }) {
+export async function addQuestion(input: { qualificationId: string; chapterId: number; questionType: QuestionType; questionText: string; choices: string[]; answer: string; acceptableAnswers?: string[]; explanation?: string; difficulty?: number; }) {
   try {
     const created = await prisma.question.create({ data: {
       chapter_id: input.chapterId,
@@ -405,6 +414,7 @@ export async function addQuestion(input: { qualificationId: string; chapterId: n
       question_text: input.questionText,
       choices: input.choices as any,
       answer: input.answer,
+      acceptable_answers: input.acceptableAnswers as any,
       explanation: input.explanation ?? "",
       difficulty: input.difficulty ?? 1,
     } });
@@ -420,8 +430,11 @@ export async function updateQuestion(input: { id: number; fields: Partial<Omit<Q
     if (data.questionText) data.question_text = data.questionText;
     if (data.questionType) data.question_type = data.questionType;
     if (data.choices) data.choices = data.choices as any;
+    if (data.answer) data.answer = String(data.answer);
+    if (data.acceptableAnswers) data.acceptable_answers = data.acceptableAnswers as any;
     delete data.questionText;
     delete data.questionType;
+    delete data.acceptableAnswers;
     const updated = await prisma.question.update({ where: { id: input.id }, data });
     return await getQuestionById(updated.id);
   } catch (e) {
@@ -438,7 +451,7 @@ export async function deleteQuestion(id: number) {
   }
 }
 
-export async function bulkAddQuestion(inputs: Array<{ qualificationId: string; chapterId: number; questionType: QuestionType; questionText: string; choices: string[]; answer: number; explanation?: string; difficulty?: number; }>) {
+export async function bulkAddQuestion(inputs: Array<{ qualificationId: string; chapterId: number; questionType: QuestionType; questionText: string; choices: string[]; answer: string; acceptableAnswers?: string[]; explanation?: string; difficulty?: number; }>) {
   const results = [];
   for (const input of inputs) {
     try {
@@ -449,6 +462,7 @@ export async function bulkAddQuestion(inputs: Array<{ qualificationId: string; c
           question_text: input.questionText,
           choices: input.choices as any,
           answer: input.answer,
+          acceptable_answers: input.acceptableAnswers as any,
           explanation: input.explanation ?? "",
           difficulty: input.difficulty ?? 1,
         },
@@ -461,10 +475,41 @@ export async function bulkAddQuestion(inputs: Array<{ qualificationId: string; c
   return results;
 }
 
-export async function recordAnswer(input: { userId: number; questionId: number; userAnswer: number; }) {
+export async function recordAnswer(input: { userId: number; questionId: number; userAnswer: number | string; }) {
   const userId = input.userId;
   const question = await getQuestionById(input.questionId);
-  const isCorrect = question.answer === input.userAnswer;
+  
+  let isCorrect: boolean;
+  let correctAnswer: string;
+
+  if (question.questionType === "choice") {
+    // 選択式問題の判定（文字列比較）
+    isCorrect = question.answer === String(input.userAnswer);
+    correctAnswer = question.answer;
+  } else {
+    // 記述式問題の判定（AI判定）
+    const userAnswerStr = String(input.userAnswer).trim();
+    const correctAnswerStr = question.answer.trim();
+    
+    try {
+      // AI判定を呼び出し
+      const aiResult = await gradeAnswerWithAI({
+        questionText: question.questionText,
+        correctAnswer: correctAnswerStr,
+        userAnswer: userAnswerStr,
+        acceptableAnswers: question.acceptableAnswers,
+      });
+      
+      isCorrect = aiResult.isCorrect;
+      correctAnswer = correctAnswerStr;
+    } catch (aiError) {
+      // AI判定が失敗した場合のフォールバック：完全一致チェック
+      console.error("AI判定失敗、フォールバック使用:", aiError);
+      isCorrect = userAnswerStr.toLowerCase() === correctAnswerStr.toLowerCase();
+      correctAnswer = correctAnswerStr;
+    }
+  }
+
   try {
     await prisma.user.upsert({ where: { id: userId }, update: {}, create: { 
       userid: String(userId),
@@ -478,9 +523,64 @@ export async function recordAnswer(input: { userId: number; questionId: number; 
       const toKeep = same.slice(0, 5).map((s: any) => s.id);
       await prisma.userAnswer.deleteMany({ where: { user_id: userId, question_id: question.id, id: { notIn: toKeep } } });
     }
-    return { record: { id: created.id, userId: created.user_id, questionId: created.question_id, userAnswer: created.user_answer ?? "", isCorrect: created.is_correct, answeredAt: created.answered_at.toISOString() }, question, isCorrect, correctAnswer: question.answer };
+    return { record: { id: created.id, userId: created.user_id, questionId: created.question_id, userAnswer: created.user_answer ?? "", isCorrect: created.is_correct, answeredAt: created.answered_at.toISOString() }, question, isCorrect, correctAnswer };
   } catch (e) {
     throw new Error(`Failed to record answer: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+function checkExactMatch(userAnswer: string, correctAnswer: string): boolean {
+  return userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+}
+
+function checkPartialMatch(userAnswer: string, correctAnswer: string): boolean {
+  // 大文字小文字を無視して比較
+  const normalizedUser = userAnswer.trim().toLowerCase();
+  const normalizedCorrect = correctAnswer.trim().toLowerCase();
+  
+  // 完全一致の場合はtrue
+  if (normalizedUser === normalizedCorrect) {
+    return true;
+  }
+  
+  // 空白を除去して比較（複数の空白や改行を単一の空白に変換）
+  const compactUser = normalizedUser.replace(/\s+/g, ' ');
+  const compactCorrect = normalizedCorrect.replace(/\s+/g, ' ');
+  
+  return compactUser === compactCorrect;
+}
+
+export async function gradeAnswerWithAI(params: {
+  questionText: string;
+  correctAnswer: string;
+  userAnswer: string;
+  acceptableAnswers?: string[];
+}): Promise<AIGradeResult> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'http://localhost:3000';
+    
+    const response = await fetch(`${baseUrl}/api/ai-grade`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI判定APIの呼び出しに失敗しました: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return {
+      isCorrect: result.isCorrect,
+      confidence: result.confidence,
+      reasoning: result.reasoning,
+    };
+  } catch (e) {
+    throw new Error(`AI判定に失敗しました: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 

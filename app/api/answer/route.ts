@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const answer = await recordAnswer({
     userId: user.id,
     questionId: body.questionId,
-    userAnswer: Number(body.userAnswer),
+    userAnswer: typeof body.userAnswer === "number" ? body.userAnswer : body.userAnswer,
   });
 
   return Response.json({

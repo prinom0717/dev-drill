@@ -1,6 +1,6 @@
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
-import { generateQuestionPrompt } from "@/lib/prompt-template";
+import { generateQuestionPrompt, generateDescriptiveQuestionPrompt } from "@/lib/prompt-template";
 import { prisma } from "@/lib/prisma";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -35,12 +35,19 @@ function extractCodeBlock(content: string): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { subject, chapter, freeText } = body;
+    const { subject, chapter, freeText, questionType } = body;
 
     // バリデーション
     if (!subject || !chapter) {
       return NextResponse.json(
         { error: "科目と章は必須です" },
+        { status: 400 }
+      );
+    }
+
+    if (questionType && questionType !== "choice" && questionType !== "descriptive") {
+      return NextResponse.json(
+        { error: "問題タイプは 'choice' または 'descriptive' である必要があります" },
         { status: 400 }
       );
     }
@@ -53,13 +60,20 @@ export async function POST(request: Request) {
       take: 50, // 最近の50件に制限してプロンプトが長くなりすぎないようにする
     });
 
-    // プロンプトを生成
-    const prompt = generateQuestionPrompt({
-      subject,
-      chapter,
-      freeText: freeText || "",
-      rejectedQuestions,
-    });
+    // プロンプトを生成（問題タイプに応じて分岐）
+    const prompt = questionType === "descriptive"
+      ? generateDescriptiveQuestionPrompt({
+          subject,
+          chapter,
+          freeText: freeText || "",
+          rejectedQuestions,
+        })
+      : generateQuestionPrompt({
+          subject,
+          chapter,
+          freeText: freeText || "",
+          rejectedQuestions,
+        });
 
     // LLMを呼び出し
     const res = await groq.chat.completions.create({
@@ -91,16 +105,28 @@ export async function POST(request: Request) {
       );
     }
 
-    // バリデーション
-    if (!parsedQuestion.question || !parsedQuestion.choices || !parsedQuestion.answer) {
-      return NextResponse.json(
-        { error: "生成された問題の形式が正しくありません", parsedQuestion },
-        { status: 500 }
-      );
+    // バリデーション（問題タイプに応じて分岐）
+    if (questionType === "descriptive") {
+      // 記述式問題のバリデーション
+      if (!parsedQuestion.question || !parsedQuestion.answer) {
+        return NextResponse.json(
+          { error: "生成された問題の形式が正しくありません", parsedQuestion },
+          { status: 500 }
+        );
+      }
+    } else {
+      // 選択式問題のバリデーション
+      if (!parsedQuestion.question || !parsedQuestion.choices || !parsedQuestion.answer) {
+        return NextResponse.json(
+          { error: "生成された問題の形式が正しくありません", parsedQuestion },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({
       question: parsedQuestion,
+      questionType: questionType || "choice",
     });
   } catch (error) {
     console.error("Error generating question:", error);

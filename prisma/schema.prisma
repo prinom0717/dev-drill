@@ -29,19 +29,20 @@ model ExamChapter {
 }
 
 model Question {
-  id            Int          @id @default(autoincrement())
-  chapter_id    Int
-  question_type QuestionType
-  question_text String
-  choices       Json
-  answer        Int
-  explanation   String?
-  difficulty    Int
-  created_at    DateTime     @default(now())
-  chapter       ExamChapter  @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
-  userAnswers   UserAnswer[]
-  userMarks     UserMark[]
-  issues        QuestionIssue[]
+  id                  Int      @id @default(autoincrement())
+  chapter_id          Int
+  question_type       String
+  question_text       String
+  choices             Json
+  answer              String
+  acceptable_answers  Json?
+  explanation         String?
+  difficulty          Int
+  created_at          DateTime     @default(now())
+  chapter             ExamChapter  @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
+  userAnswers         UserAnswer[]
+  userMarks           UserMark[]
+  issues              QuestionIssue[]
 
   @@index([chapter_id])
 }
@@ -99,10 +100,6 @@ model RejectedQuestion {
   created_at    DateTime @default(now())
 
   @@index([chapter_id])
-}
-
-enum QuestionType {
-  choice
 }
 
 model QuestionIssue {

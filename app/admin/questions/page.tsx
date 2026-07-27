@@ -27,12 +27,15 @@ export default function AdminPage() {
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [editingDifficulty, setEditingDifficulty] = useState<number>(1);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [questionType, setQuestionType] = useState<"choice" | "descriptive">("choice");
+  const [editingQuestionType, setEditingQuestionType] = useState<"choice" | "descriptive">("choice");
 
   // AI作成用
   const [aiFreeText, setAiFreeText] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiGeneratedQuestion, setAiGeneratedQuestion] = useState<any>(null);
   const [aiDuplicateWarning, setAiDuplicateWarning] = useState<string | null>(null);
+  const [aiQuestionType, setAiQuestionType] = useState<"choice" | "descriptive">("choice");
 
   // CSVインポート用
   const [csvText, setCsvText] = useState("");
@@ -205,16 +208,37 @@ export default function AdminPage() {
 
     const form = e.currentTarget;
     const fd = new FormData(form);
-    const payload = {
+    
+    const basePayload = {
       qualificationId: String(selectedExamId || ""),
       chapterId: selectedChapterIdForQuestions,
-      questionType: "choice",
+      questionType: questionType,
       questionText: String(fd.get("questionText") || ""),
-      choices: String(fd.get("choices") || "").split("\n").map((s: any) => s.trim()).filter(Boolean),
-      answer: Number(fd.get("answer") || 1),
       explanation: String(fd.get("explanation") || ""),
       difficulty: Number(fd.get("difficulty") || 1),
     };
+
+    let payload: any = basePayload;
+
+    if (questionType === "choice") {
+      payload = {
+        ...basePayload,
+        choices: String(fd.get("choices") || "").split("\n").map((s: any) => s.trim()).filter(Boolean),
+        answer: String(fd.get("answer") || "1"),
+      };
+    } else {
+      const acceptableAnswersText = String(fd.get("acceptableAnswers") || "");
+      const acceptableAnswers = acceptableAnswersText 
+        ? acceptableAnswersText.split("\n").map((s: any) => s.trim()).filter(Boolean)
+        : undefined;
+      
+      payload = {
+        ...basePayload,
+        choices: [], // 記述式は空配列
+        answer: String(fd.get("textAnswer") || ""),
+        acceptableAnswers,
+      };
+    }
 
     try {
       await fetch(`/api/questions`, { method: "POST", body: JSON.stringify(payload) });
@@ -240,6 +264,7 @@ export default function AdminPage() {
   async function handleEditQuestion(q: Question) {
     setEditingQuestion(q);
     setEditingDifficulty(Number(q.difficulty || 1));
+    setEditingQuestionType((q.questionType as "choice" | "descriptive") || "choice");
     setShowEditModal(true);
   }
 
@@ -249,15 +274,39 @@ export default function AdminPage() {
 
     const form = e.currentTarget;
     const fd = new FormData(form);
+    
+    const baseFields = {
+      questionText: String(fd.get("questionText") || ""),
+      explanation: String(fd.get("explanation") || ""),
+      difficulty: Number(fd.get("difficulty") || 1),
+      questionType: editingQuestionType,
+    };
+
+    let fields: any = baseFields;
+
+    if (editingQuestionType === "choice") {
+      fields = {
+        ...baseFields,
+        choices: String(fd.get("choices") || "").split("\n").map((s: any) => s.trim()).filter(Boolean),
+        answer: String(fd.get("answer") || "1"),
+      };
+    } else {
+      const acceptableAnswersText = String(fd.get("acceptableAnswers") || "");
+      const acceptableAnswers = acceptableAnswersText 
+        ? acceptableAnswersText.split("\n").map((s: any) => s.trim()).filter(Boolean)
+        : undefined;
+      
+      fields = {
+        ...baseFields,
+        choices: [],
+        answer: String(fd.get("textAnswer") || ""),
+        acceptableAnswers,
+      };
+    }
+
     const payload = {
       id: editingQuestion.id,
-      fields: {
-        questionText: String(fd.get("questionText") || ""),
-        choices: String(fd.get("choices") || "").split("\n").map((s: any) => s.trim()).filter(Boolean),
-        answer: Number(fd.get("answer") || 1),
-        explanation: String(fd.get("explanation") || ""),
-        difficulty: Number(fd.get("difficulty") || 1),
-      },
+      fields,
     };
 
     try {
@@ -295,6 +344,7 @@ export default function AdminPage() {
           subject: subject,
           chapter: chapterTitle,
           freeText: aiFreeText,
+          questionType: aiQuestionType,
         }),
       });
 
@@ -304,7 +354,10 @@ export default function AdminPage() {
         throw new Error(data.error || "生成に失敗しました");
       }
 
-      setAiGeneratedQuestion(data.question);
+      setAiGeneratedQuestion({
+        ...data.question,
+        questionType: data.questionType || "choice",
+      });
 
       // 重複チェック
       await checkDuplicate(data.question.question);
@@ -345,16 +398,37 @@ export default function AdminPage() {
     }
 
     try {
-      const payload = {
+      const questionType = aiGeneratedQuestion.questionType || "choice";
+      
+      let payload: any = {
         qualificationId: String(selectedExamId || ""),
         chapterId: selectedChapterIdForQuestions,
-        questionType: "choice",
+        questionType: questionType,
         questionText: aiGeneratedQuestion.question,
-        choices: aiGeneratedQuestion.choices,
-        answer: Number(aiGeneratedQuestion.answer),
         explanation: aiGeneratedQuestion.explanation,
         difficulty: Number(aiGeneratedQuestion.difficulty),
       };
+
+      if (questionType === "choice") {
+        payload = {
+          ...payload,
+          choices: aiGeneratedQuestion.choices,
+          answer: String(aiGeneratedQuestion.answer),
+        };
+      } else {
+        const acceptableAnswers = aiGeneratedQuestion.acceptableAnswers 
+          ? (Array.isArray(aiGeneratedQuestion.acceptableAnswers) 
+              ? aiGeneratedQuestion.acceptableAnswers 
+              : [])
+          : undefined;
+        
+        payload = {
+          ...payload,
+          choices: [],
+          answer: String(aiGeneratedQuestion.answer || ""),
+          acceptableAnswers,
+        };
+      }
 
       const res = await fetch(`/api/questions`, {
         method: "POST",
@@ -735,10 +809,27 @@ export default function AdminPage() {
                   </Select>
                 </FormControl>
               </Stack>
+              <FormControl size="small" fullWidth>
+                <InputLabel>問題タイプ</InputLabel>
+                <Select
+                  value={questionType}
+                  onChange={(e) => setQuestionType(e.target.value as "choice" | "descriptive")}
+                  label="問題タイプ"
+                >
+                  <MenuItem value="choice">選択式</MenuItem>
+                  <MenuItem value="descriptive">記述式</MenuItem>
+                </Select>
+              </FormControl>
               <TextField name="questionText" placeholder="問題文" fullWidth size="small" label="問題文" multiline rows={3} />
-              <TextField name="choices" placeholder="選択肢（改行区切りで4つ）" fullWidth size="small" label="選択肢（改行区切りで4つ）" multiline rows={4} />
+              {questionType === "choice" ? (
+                <TextField name="choices" placeholder="選択肢（改行区切りで4つ）" fullWidth size="small" label="選択肢（改行区切りで4つ）" multiline rows={4} />
+              ) : null}
               <Stack direction="row" spacing={2}>
-                <TextField name="answer" placeholder="正解の行番号 (1から)" sx={{ width: 200 }} size="small" label="正解の行番号" type="number" />
+                {questionType === "choice" ? (
+                  <TextField name="answer" placeholder="正解の行番号 (1から)" sx={{ width: 200 }} size="small" label="正解の行番号" type="number" />
+                ) : (
+                  <TextField name="textAnswer" placeholder="正解テキスト" sx={{ width: 300 }} size="small" label="正解テキスト" />
+                )}
                 <Box sx={{ flex: 1 }} />
                 <FormControl size="small" sx={{ minWidth: 150 }}>
                   <InputLabel>難易度</InputLabel>
@@ -751,6 +842,18 @@ export default function AdminPage() {
                   </Select>
                 </FormControl>
               </Stack>
+              {questionType === "descriptive" ? (
+                <TextField 
+                  name="acceptableAnswers" 
+                  placeholder="許容される正解パターン（改行区切り、例：東京&#10;とうきょう&#10;TOKYO）" 
+                  fullWidth 
+                  size="small" 
+                  label="許容される正解パターン（オプション）" 
+                  multiline 
+                  rows={3} 
+                  helperText="複数の表記を許容する場合に入力（改行区切り）"
+                />
+              ) : null}
               <TextField name="explanation" placeholder="解説" fullWidth size="small" label="解説" multiline rows={3} />
             </Stack>
             <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
@@ -859,6 +962,17 @@ export default function AdminPage() {
                   </Select>
                 </FormControl>
               </Stack>
+              <FormControl size="small" fullWidth>
+                <InputLabel>問題タイプ</InputLabel>
+                <Select
+                  value={aiQuestionType}
+                  onChange={(e) => setAiQuestionType(e.target.value as "choice" | "descriptive")}
+                  label="問題タイプ"
+                >
+                  <MenuItem value="choice">選択式</MenuItem>
+                  <MenuItem value="descriptive">記述式</MenuItem>
+                </Select>
+              </FormControl>
               <TextField
                 value={aiFreeText}
                 onChange={(e) => setAiFreeText(e.target.value)}
@@ -912,15 +1026,28 @@ export default function AdminPage() {
                     />
                   </div>
 
-                  {/* 選択肢（各ブロック＋可変長） */}
-                  <div>
-                    <div className="text-sm font-medium mb-1">選択肢:</div>
-
-                    <Stack spacing={1}>
-                      {aiGeneratedQuestion.choices.map((choice: string, i: number) => (
+                  {/* 問題タイプによるUI切り替え */}
+                  {aiGeneratedQuestion.questionType === "descriptive" ? (
+                    /* 記述式問題のUI */
+                    <>
+                      <div>
+                        <div className="text-sm font-medium mb-1">正解テキスト:</div>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          value={aiGeneratedQuestion.answer || ""}
+                          onChange={(e) =>
+                            setAiGeneratedQuestion({
+                              ...aiGeneratedQuestion,
+                              answer: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium mb-1">許容される正解パターン（オプション）:</div>
                         <TextareaAutosize
-                          key={i}
-                          minRows={1}
+                          minRows={2}
                           style={{
                             width: "100%",
                             fontSize: "14px",
@@ -928,35 +1055,70 @@ export default function AdminPage() {
                             borderRadius: "6px",
                             border: "1px solid #ccc",
                           }}
-                          value={choice}
-                          onChange={(e) => {
-                            const newChoices = [...aiGeneratedQuestion.choices];
-                            newChoices[i] = e.target.value;
+                          value={aiGeneratedQuestion.acceptableAnswers?.join("\n") || ""}
+                          onChange={(e) =>
                             setAiGeneratedQuestion({
                               ...aiGeneratedQuestion,
-                              choices: newChoices,
-                            });
-                          }}
+                              acceptableAnswers: e.target.value.split("\n").map(s => s.trim()).filter(Boolean),
+                            })
+                          }
+                          placeholder="改行区切りで入力（例：東京&#10;とうきょう&#10;TOKYO）"
                         />
-                      ))}
-                    </Stack>
-                  </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* 選択式問題のUI */
+                    <>
+                      {/* 選択肢（各ブロック＋可変長） */}
+                      <div>
+                        <div className="text-sm font-medium mb-1">選択肢:</div>
 
-                  {/* 正解 + 難易度（既存UIと統一） */}
+                        <Stack spacing={1}>
+                          {aiGeneratedQuestion.choices?.map((choice: string, i: number) => (
+                            <TextareaAutosize
+                              key={i}
+                              minRows={1}
+                              style={{
+                                width: "100%",
+                                fontSize: "14px",
+                                padding: "8px",
+                                borderRadius: "6px",
+                                border: "1px solid #ccc",
+                              }}
+                              value={choice}
+                              onChange={(e) => {
+                                const newChoices = [...aiGeneratedQuestion.choices];
+                                newChoices[i] = e.target.value;
+                                setAiGeneratedQuestion({
+                                  ...aiGeneratedQuestion,
+                                  choices: newChoices,
+                                });
+                              }}
+                            />
+                          ))}
+                        </Stack>
+                      </div>
+
+                      {/* 正解の行番号 */}
+                      <TextField
+                        label="正解の行番号 (1から)"
+                        type="number"
+                        size="small"
+                        sx={{ width: 200 }}
+                        value={aiGeneratedQuestion.answer}
+                        onChange={(e) =>
+                          setAiGeneratedQuestion({
+                            ...aiGeneratedQuestion,
+                            answer: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </>
+                  )}
+
+                  {/* 難易度（共通） */}
                   <Stack direction="row" spacing={2}>
-                    <TextField
-                      label="正解の行番号 (1から)"
-                      type="number"
-                      size="small"
-                      sx={{ width: 200 }}
-                      value={aiGeneratedQuestion.answer}
-                      onChange={(e) =>
-                        setAiGeneratedQuestion({
-                          ...aiGeneratedQuestion,
-                          answer: Number(e.target.value),
-                        })
-                      }
-                    />
+                    <Box sx={{ flex: 1 }} />
 
                     <Box sx={{ flex: 1 }} />
 
@@ -1071,10 +1233,27 @@ export default function AdminPage() {
         <DialogTitle>問題を編集</DialogTitle>
         <DialogContent>
           <Stack component="form" onSubmit={handleUpdateQuestion} spacing={3} sx={{ pt: 2 }}>
+            <FormControl size="small" fullWidth>
+              <InputLabel>問題タイプ</InputLabel>
+              <Select
+                value={editingQuestionType}
+                onChange={(e) => setEditingQuestionType(e.target.value as "choice" | "descriptive")}
+                label="問題タイプ"
+              >
+                <MenuItem value="choice">選択式</MenuItem>
+                <MenuItem value="descriptive">記述式</MenuItem>
+              </Select>
+            </FormControl>
             <TextField name="questionText" defaultValue={editingQuestion?.questionText} fullWidth size="small" label="問題文" multiline rows={3} />
-            <TextField name="choices" defaultValue={editingQuestion?.choices?.join("\n") || ""} fullWidth size="small" label="選択肢（改行区切りで4つ）" multiline rows={4} />
+            {editingQuestionType === "choice" ? (
+              <TextField name="choices" defaultValue={editingQuestion?.choices?.join("\n") || ""} fullWidth size="small" label="選択肢（改行区切りで4つ）" multiline rows={4} />
+            ) : null}
             <Stack direction="row" spacing={2}>
-              <TextField name="answer" type="number" defaultValue={editingQuestion?.answer || 1} sx={{ width: 200 }} size="small" label="正解の行番号" />
+              {editingQuestionType === "choice" ? (
+                <TextField name="answer" type="number" defaultValue={editingQuestion?.answer || 1} sx={{ width: 200 }} size="small" label="正解の行番号" />
+              ) : (
+                <TextField name="textAnswer" defaultValue={editingQuestion?.textAnswer || ""} sx={{ width: 300 }} size="small" label="正解テキスト" />
+              )}
               <Box sx={{ flex: 1 }} />
               <FormControl size="small" sx={{ minWidth: 150 }}>
                 <InputLabel>難易度</InputLabel>
@@ -1087,6 +1266,18 @@ export default function AdminPage() {
                 </Select>
               </FormControl>
             </Stack>
+            {editingQuestionType === "descriptive" ? (
+              <TextField 
+                name="acceptableAnswers" 
+                defaultValue={editingQuestion?.acceptableAnswers?.join("\n") || ""} 
+                fullWidth 
+                size="small" 
+                label="許容される正解パターン（オプション）" 
+                multiline 
+                rows={3} 
+                helperText="複数の表記を許容する場合に入力（改行区切り）"
+              />
+            ) : null}
             <TextField name="explanation" defaultValue={editingQuestion?.explanation || ""} fullWidth size="small" label="解説" multiline rows={3} />
             <Stack direction="row" spacing={2}>
               <Button type="submit" variant="contained" color="primary">更新</Button>

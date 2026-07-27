@@ -6,6 +6,7 @@ import { CircularProgress, Box, Button } from "@mui/material";
 
 import type { Question } from "@/lib/master-drill-store";
 import { QuestionIssueModal } from "./question-issue-modal";
+import { DescriptiveAnswerInput } from "./descriptive-answer-input";
 
 type Props = {
   qualificationId: string;
@@ -30,7 +31,7 @@ export function QuizPlayClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [issueModalOpen, setIssueModalOpen] = useState(false);
 
-  async function handleAnswer(questionId: number, userAnswer: number) {
+  async function handleAnswer(questionId: number, userAnswer: number | string) {
     setPendingQuestionId(questionId);
     setIsSubmitting(true);
     setErrorMessage(null);
@@ -85,14 +86,19 @@ export function QuizPlayClient({
             right: 0,
             bottom: 0,
             display: "flex",
+            flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
             bgcolor: "rgba(255,255,255,0.7)",
             zIndex: 10,
             borderRadius: "1.5rem",
+            gap: 2,
           }}
         >
           <CircularProgress />
+          <span className="text-sm text-slate-600">
+            {question?.questionType === "descriptive" ? "AIで判定中..." : "処理中..."}
+          </span>
         </Box>
       )}
       
@@ -122,23 +128,33 @@ export function QuizPlayClient({
           </div>
           <h3 className="mt-3 text-lg font-semibold text-slate-900" style={{ margin: "0 10px", whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{question.questionText}</h3>
 
-          <div className="mt-4 grid gap-3">
-            {question.choices.map((choice, choiceIndex) => (
-              <button
-                  key={choice}
-                  type="button"
-                  disabled={pendingQuestionId !== null}
-                  onTouchStart={() => handleAnswer(question.id, choiceIndex + 1)}
-                  onClick={() => handleAnswer(question.id, choiceIndex + 1)}
-                  className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm text-slate-800 transition hover:border-amber-300 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-amber-700">
-                  {choiceIndex + 1}
-                  </span>
-                <span className="leading-6" style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{choice}</span>
-              </button>
-            ))}
-          </div>
+          {question.questionType === "choice" ? (
+            <div className="mt-4 grid gap-3">
+              {question.choices.map((choice, choiceIndex) => (
+                <button
+                    key={choice}
+                    type="button"
+                    disabled={pendingQuestionId !== null}
+                    onTouchStart={() => handleAnswer(question.id, choiceIndex + 1)}
+                    onClick={() => handleAnswer(question.id, choiceIndex + 1)}
+                    className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm text-slate-800 transition hover:border-amber-300 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-amber-700">
+                    {choiceIndex + 1}
+                    </span>
+                  <span className="leading-6" style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{choice}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4">
+              <DescriptiveAnswerInput
+                onSubmit={(answer) => handleAnswer(question.id, answer)}
+                disabled={pendingQuestionId !== null}
+                isLoading={isSubmitting}
+              />
+            </div>
+          )}
         </article>
       )}
 
