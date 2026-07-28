@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { gradeAnswerWithAI } from "./ai-grade";
 
 export type QuestionType = "choice" | "descriptive";
 
@@ -548,40 +549,6 @@ function checkPartialMatch(userAnswer: string, correctAnswer: string): boolean {
   const compactCorrect = normalizedCorrect.replace(/\s+/g, ' ');
   
   return compactUser === compactCorrect;
-}
-
-export async function gradeAnswerWithAI(params: {
-  questionText: string;
-  correctAnswer: string;
-  userAnswer: string;
-  acceptableAnswers?: string[];
-}): Promise<AIGradeResult> {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : 'http://localhost:3000';
-    
-    const response = await fetch(`${baseUrl}/api/ai-grade`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(params),
-    });
-
-    if (!response.ok) {
-      throw new Error(`AI判定APIの呼び出しに失敗しました: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    return {
-      isCorrect: result.isCorrect,
-      confidence: result.confidence,
-      reasoning: result.reasoning,
-    };
-  } catch (e) {
-    throw new Error(`AI判定に失敗しました: ${e instanceof Error ? e.message : String(e)}`);
-  }
 }
 
 export async function getHistory(userId: number, options?: { examId?: number; chapterId?: number }) {
