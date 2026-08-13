@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyToken } from "./jwt";
 import type { SessionUser } from "./types";
 import { isValidRole } from "./roles";
+import { getUserByPayload } from "./session";
 
 const COOKIE_NAME = "auth_token";
 
@@ -20,30 +21,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     return null;
   }
 
-  const user = await prisma.user.findFirst({
-    where: {
-      id: payload.sub,
-      deleted: false,
-      locked: false,
-    },
-    select: {
-      id: true,
-      userid: true,
-      role: true,
-      email: true,
-    },
-  });
-
-  if (!user || !isValidRole(user.role)) {
-    return null;
-  }
-
-  return {
-    id: user.id,
-    userid: user.userid,
-    role: user.role,
-    email: user.email,
-  };
+  return getUserByPayload(payload.sub);
 }
 
 export async function requireSessionUser(): Promise<SessionUser> {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "../_components/AuthContext";
 
 import {
   Box,
@@ -19,6 +20,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
+  const { refreshSession } = useAuth();
 
   const [userid, setUserid] = useState("");
   const [password, setPassword] = useState("");
@@ -46,6 +48,7 @@ export default function LoginPage() {
         return;
       }
 
+      await refreshSession();
       router.push(redirect);
       router.refresh();
     } catch (err) {

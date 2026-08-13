@@ -1,45 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-interface SessionUser {
-  id: number;
-  userid: string;
-  role: string;
-  email: string | null;
-}
+import { useAuth } from "./AuthContext";
 
 export default function HeaderClient() {
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<SessionUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading, refreshSession } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    fetchSession();
-  }, []);
-
-  const fetchSession = async () => {
-    try {
-      const response = await fetch("/api/auth/session");
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-      }
-    } catch (error) {
-      console.error("Failed to fetch session:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLogout = async () => {
     setOpen(false);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      setUser(null);
+      await refreshSession();
       router.push("/login");
       router.refresh();
     } catch (error) {
