@@ -17,7 +17,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { IssueType } from "@/lib/question-issues/types";
-import { Exam } from "@/lib/exams/types";
+import { Exam } from "@/lib/master-drill-store";
 
 interface QuestionRequestModalProps {
   open: boolean;

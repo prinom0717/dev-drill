@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { TextField, Button, Select, MenuItem, FormControl, InputLabel, Paper, Stack, Box, Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import TextareaAutosize from '@mui/material/TextareaAutosize';
-import { Exam } from "@/lib/exams/types";
+import { Exam } from "@/lib/master-drill-store";
 type Chapter = { id: number; examId: number; chapterNumber: number; chapterTitle: string; coverage: string | null };
 type Question = any;
 

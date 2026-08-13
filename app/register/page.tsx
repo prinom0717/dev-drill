@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import type { ValidationError } from "@/lib/validation";
 
 import {
   Box,
@@ -14,11 +15,6 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-
-interface ValidationError {
-  field: string;
-  message: string;
-}
 
 export default function RegisterPage() {
   const router = useRouter();

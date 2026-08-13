@@ -1,13 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { IssueType, IssueStatus, isValidIssueType, isValidIssueStatus } from "./types";
+import type { ValidationError } from "@/lib/validation";
+import { calculateTextSimilarity } from "@/lib/utils";
 
 export const MIN_DESCRIPTION_LENGTH = 20;
 export const SPAM_COOLDOWN_MINUTES = 60;
-
-export interface ValidationError {
-  field: string;
-  message: string;
-}
 
 export function validateIssueDescription(description: string): ValidationError | null {
   if (!description || description.trim().length === 0) {
@@ -133,21 +130,6 @@ export async function checkDuplicateIssue(
   }
 
   return { isDuplicate: false };
-}
-
-function calculateTextSimilarity(text1: string, text2: string): number {
-  const normalized1 = text1.toLowerCase().trim();
-  const normalized2 = text2.toLowerCase().trim();
-
-  if (normalized1 === normalized2) return 1.0;
-
-  const words1 = normalized1.split(/\s+/);
-  const words2 = normalized2.split(/\s+/);
-
-  const intersection = words1.filter((word) => words2.includes(word));
-  const union = [...new Set([...words1, ...words2])];
-
-  return intersection.length / union.length;
 }
 
 export async function validateIssueSubmission(

@@ -3,6 +3,12 @@ import { gradeAnswerWithAI } from "./ai-grade";
 
 export type QuestionType = "choice" | "descriptive";
 
+export interface Exam {
+  id: number;
+  examName: string;
+  description?: string;
+}
+
 export type Qualification = {
   id: string;
   name: string;

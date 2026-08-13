@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Exam } from "@/lib/exams/types"; 
+import { Exam } from "@/lib/master-drill-store"; 
 
 type Chapter = { id: number; examId: number; chapterNumber: number; chapterTitle: string; coverage: string | null };
 

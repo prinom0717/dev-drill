@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { ValidationError } from "@/lib/validation";
 
 import {
   Box,
@@ -53,9 +54,7 @@ export default function UsersPage() {
   const [createRole, setCreateRole] = useState("user");
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
-  const [createValidationErrors, setCreateValidationErrors] = useState<
-    { field: string; message: string }[]
-  >([]);
+  const [createValidationErrors, setCreateValidationErrors] = useState<ValidationError[]>([]);
 
   // ユーザー編集モーダル用state
   const [editModalOpen, setEditModalOpen] = useState(false);

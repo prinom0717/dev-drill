@@ -24,20 +24,37 @@ export function normalizeQuestionText(text: string): string {
  * 完全一致だけでなく、部分的な一致も検出可能にする
  */
 export function isSimilarText(text1: string, text2: string, threshold: number = 0.9): boolean {
-  const normalized1 = normalizeQuestionText(text1);
-  const normalized2 = normalizeQuestionText(text2);
+  const similarity = calculateTextSimilarity(text1, text2);
+  return similarity >= threshold;
+}
+
+/**
+ * 文字列の類似度を計算する関数（0.0〜1.0）
+ * Jaccard係数とレーベンシュタイン距離の組み合わせ
+ */
+export function calculateTextSimilarity(text1: string, text2: string): number {
+  const normalized1 = normalizeQuestionText(text1).toLowerCase();
+  const normalized2 = normalizeQuestionText(text2).toLowerCase();
 
   // 完全一致
   if (normalized1 === normalized2) {
-    return true;
+    return 1.0;
   }
 
-  // レーベンシュタイン距離による類似度計算
+  // Jaccard係数による単語レベルの類似度
+  const words1 = normalized1.split(/\s+/);
+  const words2 = normalized2.split(/\s+/);
+  const intersection = words1.filter((word) => words2.includes(word));
+  const union = [...new Set([...words1, ...words2])];
+  const jaccardSimilarity = union.length > 0 ? intersection.length / union.length : 0;
+
+  // レーベンシュタイン距離による文字レベルの類似度
   const distance = levenshteinDistance(normalized1, normalized2);
   const maxLength = Math.max(normalized1.length, normalized2.length);
-  const similarity = 1 - distance / maxLength;
+  const levenshteinSimilarity = maxLength > 0 ? 1 - distance / maxLength : 0;
 
-  return similarity >= threshold;
+  // 2つの類似度の加重平均（Jaccardを重視）
+  return jaccardSimilarity * 0.7 + levenshteinSimilarity * 0.3;
 }
 
 /**
