@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TextField, Button, Select, MenuItem, FormControl, InputLabel, Paper, Stack, Box, Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
+import { TextField, Button, Select, MenuItem, FormControl, InputLabel, Paper, Stack, Box, Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery, useTheme } from "@mui/material";
 import TextareaAutosize from '@mui/material/TextareaAutosize';
 import { Exam } from "@/lib/master-drill-store";
 type Chapter = { id: number; examId: number; chapterNumber: number; chapterTitle: string; coverage: string | null };
@@ -10,6 +10,10 @@ type Question = any;
 type TabType = "exams" | "chapters" | "questions" | "ai-create";
 
 export default function AdminPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  
   const [activeTab, setActiveTab] = useState<TabType>("exams");
   
   // 試験管理用
@@ -636,11 +640,11 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="prose mx-auto max-w-4xl p-6">
+    <div className="prose mx-auto max-w-full md:max-w-4xl p-6">
       <h1 className="text-2xl font-semibold">管理画面</h1>
 
       <Box sx={{ mb: 6 }}>
-        <Tabs value={activeTab} onChange={(e, value) => setActiveTab(value)}>
+        <Tabs value={activeTab} onChange={(e, value) => setActiveTab(value)} variant="scrollable" scrollButtons="auto">
           <Tab value="exams" label="試験管理" />
           <Tab value="chapters" label="章管理" />
           <Tab value="questions" label="問題管理" />
@@ -704,7 +708,7 @@ export default function AdminPage() {
       {activeTab === "chapters" && (
         <Stack spacing={6} >
 
-          <Paper component="form" onSubmit={handleAddChapter} sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+          <Paper component="form" onSubmit={handleAddChapter} sx={{ p: 3, maxWidth: '100%', mx: 'auto' }}>
             <Stack spacing={2}>
               <Box sx={{ mb: 4 }}>
                 <FormControl size="small" fullWidth>
@@ -722,7 +726,7 @@ export default function AdminPage() {
                 </FormControl>
               </Box>
               <Stack direction="row" spacing={2}>
-                <TextField name="chapterNumber" placeholder="章番号" sx={{ width: 150 }} size="small" label="章番号" type="number" />
+                <TextField name="chapterNumber" placeholder="章番号" sx={{ width: '40%' }} size="small" label="章番号" type="number" />
                 <TextField name="chapterTitle" placeholder="章タイトル" fullWidth size="small" label="章タイトル" />
               </Stack>
               <TextField name="coverage" placeholder="範囲（任意）" fullWidth size="small" label="範囲（任意）" multiline rows={2} />
@@ -778,10 +782,10 @@ export default function AdminPage() {
       )}
 
       {activeTab === "questions" && (
-        <Stack spacing={6} sx={{ width: '800px' }}>
-          <Paper component="form" onSubmit={handleAddQuestion} sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+        <Stack spacing={6} sx={{ width: '80vw', mx: 'auto' }}>
+          <Paper component="form" onSubmit={handleAddQuestion} sx={{ p: 3, maxWidth: '100%', mx: 'auto' }}>
             <Stack spacing={3}>
-              <Stack direction="row" spacing={2}>
+              <Stack direction={isMobile ? "column" : "row"} spacing={2}>
                 <FormControl size="small" fullWidth>
                   <InputLabel>試験を選択</InputLabel>
                   <Select
@@ -824,14 +828,14 @@ export default function AdminPage() {
               {questionType === "choice" ? (
                 <TextField name="choices" placeholder="選択肢（改行区切りで4つ）" fullWidth size="small" label="選択肢（改行区切りで4つ）" multiline rows={4} />
               ) : null}
-              <Stack direction="row" spacing={2}>
+              <Stack direction={isMobile ? "column" : "row"} spacing={2}>
                 {questionType === "choice" ? (
-                  <TextField name="answer" placeholder="正解の行番号 (1から)" sx={{ width: 200 }} size="small" label="正解の行番号" type="number" />
+                  <TextField name="answer" placeholder="正解の行番号 (1から)" fullWidth={isMobile} sx={{ width: isMobile ? '100%' : 200 }} size="small" label="正解の行番号" type="number" />
                 ) : (
-                  <TextField name="textAnswer" placeholder="正解テキスト" sx={{ width: 300 }} size="small" label="正解テキスト" />
+                  <TextField name="textAnswer" placeholder="正解テキスト" fullWidth={isMobile} sx={{ width: isMobile ? '100%' : 300 }} size="small" label="正解テキスト" />
                 )}
-                <Box sx={{ flex: 1 }} />
-                <FormControl size="small" sx={{ minWidth: 150 }}>
+                {!isMobile && <Box sx={{ flex: 1 }} />}
+                <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: isMobile ? '100%' : 150 }}>
                   <InputLabel>難易度</InputLabel>
                   <Select name="difficulty" label="難易度" defaultValue={1}>
                     <MenuItem value={1}>難易度1</MenuItem>
@@ -888,7 +892,7 @@ export default function AdminPage() {
             )}
           </div>
 
-          <Paper sx={{ mt: 6, p: 3, maxWidth: 800, mx: 'auto' }}>
+          <Paper sx={{ mt: 6, p: 3, maxWidth: '100%', mx: 'auto' }}>
             <h2 className="text-lg font-semibold">CSV一括インポート</h2>
             <Box sx={{ mb: 2 }}>
               <div className="text-sm text-slate-600">
@@ -930,11 +934,11 @@ export default function AdminPage() {
       )}
 
       {activeTab === "ai-create" && (
-        <Stack spacing={6} sx={{ width: '800px' }}>
-          <Paper sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+        <Stack spacing={6} sx={{ width: '80vw', mx: 'auto' }}>
+          <Paper sx={{ p: 3, maxWidth: isMobile ? '100%' : 800, mx: 'auto' }}>
             <h2 className="text-lg font-semibold">AI問題作成</h2>
             <Stack spacing={3}>
-              <Stack direction="row" spacing={2}>
+              <Stack direction={isMobile ? "column" : "row"} spacing={2}>
                 <FormControl fullWidth size="small">
                   <InputLabel>試験を選択</InputLabel>
                   <Select
@@ -1205,7 +1209,7 @@ export default function AdminPage() {
                         {q.choices?.map((c:any,i:number)=>(<div key={i}>{i+1}. {c}</div>))}
                       </div>
                     </Box>
-                    <Stack direction="row" spacing={2}>
+                    <Stack direction={isMobile ? "row" : "row"} spacing={2}>
                       <Button onClick={() => handleEditQuestion(q)} variant="outlined" size="small">編集</Button>
                       <Button onClick={() => handleDeleteQuestion(q.id)} variant="contained" color="error" size="small">削除</Button>
                     </Stack>
