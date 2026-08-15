@@ -1108,7 +1108,8 @@ export default function AdminPage() {
                         label="正解の行番号 (1から)"
                         type="number"
                         size="small"
-                        sx={{ width: 200 }}
+                        fullWidth={isMobile}
+                        sx={{ width: isMobile ? '100%' : 200 }}
                         value={aiGeneratedQuestion.answer}
                         onChange={(e) =>
                           setAiGeneratedQuestion({
@@ -1121,12 +1122,10 @@ export default function AdminPage() {
                   )}
 
                   {/* 難易度（共通） */}
-                  <Stack direction="row" spacing={2}>
-                    <Box sx={{ flex: 1 }} />
-
-                    <Box sx={{ flex: 1 }} />
-
-                    <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <Stack direction={isMobile ? "column" : "row"} spacing={2}>
+                    {!isMobile && <Box sx={{ flex: 1 }} />}
+                    {!isMobile && <Box sx={{ flex: 1 }} />}
+                    <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: isMobile ? '100%' : 150 }}>
                       <InputLabel>難易度</InputLabel>
                       <Select
                         label="難易度"
@@ -1170,14 +1169,16 @@ export default function AdminPage() {
                   </div>
                 </Stack>
 
-                <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-                  <Button onClick={() => handleAIAdopt()} variant="contained" color="success">
-                    採用
-                  </Button>
+                <Stack direction={isMobile ? "column" : "row"} spacing={2} sx={{ mt: 2 }}>
+                  <Stack direction="row" spacing={2}>
+                    <Button onClick={() => handleAIAdopt()} variant="contained" color="success" sx={{ maxWidth: '102px' }}>
+                      採用
+                    </Button>
 
-                  <Button onClick={() => handleAIReject()} variant="contained" color="error">
-                    不採用
-                  </Button>
+                    <Button onClick={() => handleAIReject()} variant="contained" color="error" sx={{ maxWidth: '102px' }}>
+                      不採用
+                    </Button>
+                  </Stack>
 
                   <Button
                     onClick={() => {
@@ -1185,6 +1186,7 @@ export default function AdminPage() {
                       setAiDuplicateWarning(null);
                     }}
                     variant="outlined"
+                    sx={{ maxWidth: '102px' }}
                   >
                     キャンセル
                   </Button>
