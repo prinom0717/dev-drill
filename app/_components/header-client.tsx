@@ -64,10 +64,7 @@ export default function HeaderClient() {
                 {user.role === "admin" && (
                   <>
                     <Link href="/admin/users" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>ユーザー管理</Link>
-                  </>
-                )}
-                {user.role === "admin" && (
-                  <>
+                    <Link href="/admin/stats" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>分析</Link>
                     <Link href="/admin/question-issues" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>起票管理</Link>
                   </>
                 )}

@@ -41,6 +41,13 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // /admin/stats のアクセス制御（adminのみ）
+  if (pathname.startsWith("/admin/stats")) {
+    if (!canManageUsers(user.role)) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
   // /admin/questions のアクセス制御（admin/editorのみ）
   if (pathname.startsWith("/admin/questions")) {
     if (!canEditQuestions(user.role)) {

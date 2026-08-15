@@ -724,3 +724,259 @@ export async function getChapterIdByTitle(examId: number, chapterTitle: string) 
     throw new Error(`Failed to fetch chapter by title: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
+
+export interface AdminStatsFilters {
+  userId?: number;
+  examId?: number;
+  chapterId?: number;
+  questionId?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface AdminStatsResult {
+  summary: {
+    totalAnswers: number;
+    correctAnswers: number;
+    incorrectAnswers: number;
+    accuracy: number;
+  };
+  byUser: Array<{
+    userId: number;
+    userid: string;
+    totalAnswers: number;
+    correctAnswers: number;
+    accuracy: number;
+  }>;
+  byQuestion: Array<{
+    questionId: number;
+    questionText: string;
+    examName: string;
+    chapterTitle: string;
+    totalAnswers: number;
+    correctAnswers: number;
+    accuracy: number;
+  }>;
+  byExam: Array<{
+    examId: number;
+    examName: string;
+    totalAnswers: number;
+    correctAnswers: number;
+    accuracy: number;
+  }>;
+  byChapter: Array<{
+    chapterId: number;
+    chapterTitle: string;
+    examName: string;
+    totalAnswers: number;
+    correctAnswers: number;
+    accuracy: number;
+  }>;
+  timeSeries: Array<{
+    date: string;
+    totalAnswers: number;
+    correctAnswers: number;
+    incorrectAnswers: number;
+  }>;
+}
+
+export async function getAdminStats(filters: AdminStatsFilters = {}): Promise<AdminStatsResult> {
+  try {
+    // WHERE条件の構築
+    const where: any = {};
+    
+    if (filters.userId) {
+      where.user_id = filters.userId;
+    }
+    
+    if (filters.questionId) {
+      where.question_id = filters.questionId;
+    } else if (filters.chapterId) {
+      where.question = { chapter_id: filters.chapterId };
+    } else if (filters.examId) {
+      where.question = { chapter: { exam_id: filters.examId } };
+    }
+    
+    if (filters.startDate || filters.endDate) {
+      where.answered_at = {};
+      if (filters.startDate) {
+        where.answered_at.gte = new Date(filters.startDate);
+      }
+      if (filters.endDate) {
+        where.answered_at.lte = new Date(filters.endDate);
+      }
+    }
+    
+    // UserAnswerを関連データと共に取得
+    const userAnswers = await prisma.userAnswer.findMany({
+      where,
+      include: {
+        question: {
+          include: {
+            chapter: {
+              include: {
+                exam: true
+              }
+            }
+          }
+        },
+        user: true
+      },
+      orderBy: {
+        answered_at: 'desc'
+      }
+    });
+    
+    // サマリー統計
+    const totalAnswers = userAnswers.length;
+    const correctAnswers = userAnswers.filter(a => a.is_correct).length;
+    const incorrectAnswers = totalAnswers - correctAnswers;
+    const accuracy = totalAnswers === 0 ? 0 : Math.round((correctAnswers / totalAnswers) * 100);
+    
+    // ユーザー別統計
+    const userMap = new Map<number, any>();
+    userAnswers.forEach(answer => {
+      const userId = answer.user_id;
+      if (!userMap.has(userId)) {
+        userMap.set(userId, {
+          userId,
+          userid: answer.user.userid,
+          totalAnswers: 0,
+          correctAnswers: 0
+        });
+      }
+      const userStats = userMap.get(userId);
+      userStats.totalAnswers++;
+      if (answer.is_correct) {
+        userStats.correctAnswers++;
+      }
+    });
+    
+    const byUser = Array.from(userMap.values()).map(userStats => ({
+      ...userStats,
+      accuracy: userStats.totalAnswers === 0 ? 0 : Math.round((userStats.correctAnswers / userStats.totalAnswers) * 100)
+    })).sort((a, b) => b.accuracy - a.accuracy);
+    
+    // 問題別統計
+    const questionMap = new Map<number, any>();
+    userAnswers.forEach(answer => {
+      if (!answer.question) return;
+      
+      const questionId = answer.question.id;
+      if (!questionMap.has(questionId)) {
+        questionMap.set(questionId, {
+          questionId,
+          questionText: answer.question.question_text,
+          examName: answer.question.chapter?.exam?.exam_name || 'Unknown',
+          chapterTitle: answer.question.chapter?.chapter_title || 'Unknown',
+          totalAnswers: 0,
+          correctAnswers: 0
+        });
+      }
+      const questionStats = questionMap.get(questionId);
+      questionStats.totalAnswers++;
+      if (answer.is_correct) {
+        questionStats.correctAnswers++;
+      }
+    });
+    
+    const byQuestion = Array.from(questionMap.values()).map(questionStats => ({
+      ...questionStats,
+      accuracy: questionStats.totalAnswers === 0 ? 0 : Math.round((questionStats.correctAnswers / questionStats.totalAnswers) * 100)
+    })).sort((a, b) => b.accuracy - a.accuracy);
+    
+    // 試験別統計
+    const examMap = new Map<number, any>();
+    userAnswers.forEach(answer => {
+      if (!answer.question?.chapter?.exam) return;
+      
+      const examId = answer.question.chapter.exam.id;
+      if (!examMap.has(examId)) {
+        examMap.set(examId, {
+          examId,
+          examName: answer.question.chapter.exam.exam_name,
+          totalAnswers: 0,
+          correctAnswers: 0
+        });
+      }
+      const examStats = examMap.get(examId);
+      examStats.totalAnswers++;
+      if (answer.is_correct) {
+        examStats.correctAnswers++;
+      }
+    });
+    
+    const byExam = Array.from(examMap.values()).map(examStats => ({
+      ...examStats,
+      accuracy: examStats.totalAnswers === 0 ? 0 : Math.round((examStats.correctAnswers / examStats.totalAnswers) * 100)
+    })).sort((a, b) => b.accuracy - a.accuracy);
+    
+    // 章別統計
+    const chapterMap = new Map<number, any>();
+    userAnswers.forEach(answer => {
+      if (!answer.question?.chapter) return;
+      
+      const chapterId = answer.question.chapter.id;
+      if (!chapterMap.has(chapterId)) {
+        chapterMap.set(chapterId, {
+          chapterId,
+          chapterTitle: answer.question.chapter.chapter_title,
+          examName: answer.question.chapter.exam?.exam_name || 'Unknown',
+          totalAnswers: 0,
+          correctAnswers: 0
+        });
+      }
+      const chapterStats = chapterMap.get(chapterId);
+      chapterStats.totalAnswers++;
+      if (answer.is_correct) {
+        chapterStats.correctAnswers++;
+      }
+    });
+    
+    const byChapter = Array.from(chapterMap.values()).map(chapterStats => ({
+      ...chapterStats,
+      accuracy: chapterStats.totalAnswers === 0 ? 0 : Math.round((chapterStats.correctAnswers / chapterStats.totalAnswers) * 100)
+    })).sort((a, b) => b.accuracy - a.accuracy);
+    
+    // 時系列統計（日別）
+    const timeMap = new Map<string, any>();
+    userAnswers.forEach(answer => {
+      const dateKey = new Date(answer.answered_at).toISOString().split('T')[0];
+      if (!timeMap.has(dateKey)) {
+        timeMap.set(dateKey, {
+          date: dateKey,
+          totalAnswers: 0,
+          correctAnswers: 0,
+          incorrectAnswers: 0
+        });
+      }
+      const timeStats = timeMap.get(dateKey);
+      timeStats.totalAnswers++;
+      if (answer.is_correct) {
+        timeStats.correctAnswers++;
+      } else {
+        timeStats.incorrectAnswers++;
+      }
+    });
+    
+    const timeSeries = Array.from(timeMap.values()).sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
+    return {
+      summary: {
+        totalAnswers,
+        correctAnswers,
+        incorrectAnswers,
+        accuracy
+      },
+      byUser,
+      byQuestion,
+      byExam,
+      byChapter,
+      timeSeries
+    };
+  } catch (e) {
+    throw new Error(`Failed to fetch admin stats: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}

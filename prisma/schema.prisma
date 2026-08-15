@@ -59,6 +59,10 @@ model UserAnswer {
 
   @@index([user_id])
   @@index([question_id])
+  @@index([answered_at])
+  @@index([user_id, answered_at])
+  @@index([question_id, answered_at])
+  @@index([user_id, question_id])
 }
 
 model User {
