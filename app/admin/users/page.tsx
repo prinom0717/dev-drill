@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { ValidationError } from "@/lib/validation";
 import { useAuth } from "@/app/_components/AuthContext";
 import { getRoleLevel, ROLES, type Role } from "@/lib/auth/roles";
@@ -30,6 +30,9 @@ import {
   FormControl,
   InputLabel,
   DialogContentText,
+  TablePagination,
+  TableSortLabel,
+  Toolbar,
 } from "@mui/material";
 
 interface User {
@@ -43,12 +46,186 @@ interface User {
   updated_at: string;
 }
 
+interface HeadCell {
+  disablePadding: boolean;
+  id: keyof User | 'actions';
+  label: string;
+  numeric: boolean;
+}
+
+function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
+  if (b[orderBy] < a[orderBy]) {
+    return -1;
+  }
+  if (b[orderBy] > a[orderBy]) {
+    return 1;
+  }
+  return 0;
+}
+
+type Order = 'asc' | 'desc';
+
+function getComparator<Key extends keyof User>(
+  order: Order,
+  orderBy: Key,
+): (a: User, b: User) => number {
+  return order === 'desc'
+    ? (a, b) => descendingComparator(a, b, orderBy)
+    : (a, b) => -descendingComparator(a, b, orderBy);
+}
+
+function stableSort<T>(array: readonly T[], comparator: (a: T, b: T) => number) {
+  const stabilizedThis = array.map((el, index) => [el, index] as [T, number]);
+  stabilizedThis.sort((a, b) => {
+    const order = comparator(a[0], b[0]);
+    if (order !== 0) {
+      return order;
+    }
+    return a[1] - b[1];
+  });
+  return stabilizedThis.map((el) => el[0]);
+}
+
+interface EnhancedTableProps {
+  onRequestSort: (event: React.MouseEvent<unknown>, property: keyof User) => void;
+  order: Order;
+  orderBy: keyof User;
+}
+
+function EnhancedTableHead(props: EnhancedTableProps) {
+  const { order, orderBy, onRequestSort } = props;
+  const createSortHandler =
+    (property: keyof User) => (event: React.MouseEvent<unknown>) => {
+      onRequestSort(event, property);
+    };
+
+  return (
+    <TableHead>
+      <TableRow>
+        {headCells.map((headCell) => (
+          <TableCell
+            key={headCell.id}
+            align={headCell.numeric ? 'right' : 'left'}
+            padding={headCell.disablePadding ? 'none' : 'normal'}
+            sortDirection={orderBy === headCell.id ? order : false}
+            sx={{ whiteSpace: 'nowrap' }}
+          >
+            <TableSortLabel
+              active={orderBy === headCell.id}
+              direction={orderBy === headCell.id ? order : 'asc'}
+              onClick={createSortHandler(headCell.id as keyof User)}
+            >
+              {headCell.label}
+              {orderBy === headCell.id ? (
+                <Box component="span" sx={{ display: 'none' }}>
+                  {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                </Box>
+              ) : null}
+            </TableSortLabel>
+          </TableCell>
+        ))}
+      </TableRow>
+    </TableHead>
+  );
+}
+
+interface EnhancedTableToolbarProps {
+  title: string;
+  onCreate: () => void;
+}
+
+function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
+  const { title, onCreate } = props;
+
+  return (
+    <Toolbar
+      sx={{
+        pl: { sm: 2 },
+        pr: { xs: 1, sm: 1 },
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 2,
+      }}
+    >
+      <Typography
+        sx={{ flex: '1 1 auto' }}
+        variant="h6"
+        id="tableTitle"
+        component="div"
+      >
+        {title}
+      </Typography>
+      <Button onClick={onCreate} variant="contained" color="primary">
+        ユーザー作成
+      </Button>
+    </Toolbar>
+  );
+}
+
+const headCells: readonly HeadCell[] = [
+  {
+    id: 'id',
+    numeric: true,
+    disablePadding: false,
+    label: 'ID',
+  },
+  {
+    id: 'userid',
+    numeric: false,
+    disablePadding: false,
+    label: 'ユーザーID',
+  },
+  {
+    id: 'email',
+    numeric: false,
+    disablePadding: false,
+    label: 'メールアドレス',
+  },
+  {
+    id: 'role',
+    numeric: false,
+    disablePadding: false,
+    label: 'ロール',
+  },
+  {
+    id: 'locked',
+    numeric: false,
+    disablePadding: false,
+    label: '状態',
+  },
+  {
+    id: 'failed_attempts',
+    numeric: true,
+    disablePadding: false,
+    label: '失敗回数',
+  },
+  {
+    id: 'created_at',
+    numeric: false,
+    disablePadding: false,
+    label: '作成日',
+  },
+  {
+    id: 'actions',
+    numeric: false,
+    disablePadding: false,
+    label: '操作',
+  },
+];
+
 export default function UsersPage() {
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const userRoleLevel = user ? getRoleLevel(user.role) : 0;
+
+  // DataTable用state
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  const [orderBy, setOrderBy] = useState<keyof User>('id');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   // ユーザー作成モーダル用state
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -213,7 +390,6 @@ export default function UsersPage() {
           role: editRole,
           locked: editLocked,
           failed_attempts: editFailedAttempts,
-          email: editEmail || null,
         }),
       });
 
@@ -277,28 +453,44 @@ export default function UsersPage() {
     setDeleteUser(null);
   };
 
+  // DataTableイベントハンドラー
+  const handleRequestSort = (
+    event: React.MouseEvent<unknown>,
+    property: keyof User,
+  ) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // ソート・ページネーションでフィルタリング
+  const visibleRows = useMemo(
+    () =>
+      stableSort(users, getComparator(order, orderBy)).slice(
+        page * rowsPerPage,
+        page * rowsPerPage + rowsPerPage,
+      ),
+    [order, orderBy, page, rowsPerPage, users],
+  );
+
+  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - users.length) : 0;
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 3,
-          }}
-        >
-          <Typography component="h1" variant="h5">
-            ユーザー管理
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => setCreateModalOpen(true)}
-          >
-            ユーザー作成
-          </Button>
-        </Box>
+        <EnhancedTableToolbar
+          title="ユーザー管理"
+          onCreate={() => setCreateModalOpen(true)}
+        />
 
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
@@ -313,24 +505,21 @@ export default function UsersPage() {
         ) : (
           <TableContainer>
             <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>ユーザーID</TableCell>
-                  <TableCell>メールアドレス</TableCell>
-                  <TableCell>ロール</TableCell>
-                  <TableCell>状態</TableCell>
-                  <TableCell>失敗回数</TableCell>
-                  <TableCell>作成日</TableCell>
-                  <TableCell>操作</TableCell>
-                </TableRow>
-              </TableHead>
+              <EnhancedTableHead
+                order={order}
+                orderBy={orderBy}
+                onRequestSort={handleRequestSort}
+              />
               <TableBody>
-                {users.map((targetUser) => {
+                {visibleRows.map((targetUser) => {
                   const canManage = getRoleLevel(targetUser.role) <= userRoleLevel;
                   return (
-                    <TableRow key={targetUser.id}>
-                      <TableCell>{targetUser.id}</TableCell>
+                    <TableRow
+                      hover
+                      tabIndex={-1}
+                      key={targetUser.id}
+                    >
+                      <TableCell align="right">{targetUser.id}</TableCell>
                       <TableCell>{targetUser.userid}</TableCell>
                       <TableCell>{targetUser.email || "-"}</TableCell>
                       <TableCell>
@@ -347,7 +536,7 @@ export default function UsersPage() {
                           <Chip label="有効" color="success" size="small" />
                         )}
                       </TableCell>
-                      <TableCell>{targetUser.failed_attempts}</TableCell>
+                      <TableCell align="right">{targetUser.failed_attempts}</TableCell>
                       <TableCell>
                         {new Date(targetUser.created_at).toLocaleDateString("ja-JP")}
                       </TableCell>
@@ -381,6 +570,15 @@ export default function UsersPage() {
                     </TableRow>
                   );
                 })}
+                {emptyRows > 0 && (
+                  <TableRow
+                    style={{
+                      height: 53 * emptyRows,
+                    }}
+                  >
+                    <TableCell colSpan={8} />
+                  </TableRow>
+                )}
                 {users.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} align="center">
@@ -390,6 +588,15 @@ export default function UsersPage() {
                 )}
               </TableBody>
             </Table>
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25]}
+              component="div"
+              count={users.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+            />
           </TableContainer>
         )}
       </Paper>
@@ -523,7 +730,7 @@ export default function UsersPage() {
             type="email"
             value={editEmail}
             onChange={(e) => setEditEmail(e.target.value)}
-            disabled={editLoading}
+            disabled
           />
         </DialogContent>
         <DialogActions>
