@@ -1,29 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { requireAuth, isAuthError } from "@/lib/auth/require-auth";
+import { requireRole, isAuthError } from "@/lib/auth/require-auth";
 import { hashPassword } from "@/lib/auth/password";
 import { validateCreateUserInput } from "@/lib/auth/user-validation";
+import { getRoleLevel, ROLES } from "@/lib/auth/roles";
 
 export async function GET(request: NextRequest) {
   // 認証チェック
-  const authResult = await requireAuth(request);
+  const authResult = await requireRole(request, ["admin", "host"]);
   if (isAuthError(authResult)) {
     return authResult;
   }
 
   const user = authResult;
-
-  // admin権限チェック
-  if (user.role !== "admin") {
-    return NextResponse.json(
-      { message: "権限がありません。" },
-      { status: 403 }
-    );
-  }
+  const userRoleLevel = getRoleLevel(user.role);
 
   try {
-    // ユーザー一覧取得（deleted=trueは除外）
+    // ユーザー一覧取得（deleted=trueは除外、自分より上位のロールは除外）
     const users = await prisma.user.findMany({
       where: {
         deleted: false,
@@ -43,7 +37,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ users });
+    // 自分より上位のロールのユーザーをフィルタリング（自分と同等はOK）
+    const filteredUsers = users.filter(u => getRoleLevel(u.role) <= userRoleLevel);
+
+    return NextResponse.json({ users: filteredUsers });
   } catch (error) {
     console.error("Failed to fetch users:", error);
     return NextResponse.json(
@@ -55,20 +52,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   // 認証チェック
-  const authResult = await requireAuth(request);
+  const authResult = await requireRole(request, ["admin", "host"]);
   if (isAuthError(authResult)) {
     return authResult;
   }
 
   const user = authResult;
-
-  // admin権限チェック
-  if (user.role !== "admin") {
-    return NextResponse.json(
-      { message: "権限がありません。" },
-      { status: 403 }
-    );
-  }
+  const userRoleLevel = getRoleLevel(user.role);
 
   try {
     const body = await request.json();
@@ -83,12 +73,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // roleのバリデーション
-    if (role && !["admin", "editor", "user"].includes(role)) {
-      return NextResponse.json(
-        { message: "無効なロールです" },
-        { status: 400 }
-      );
+    // roleのバリデーション（自分より上位のロールは付与できない）
+    if (role) {
+      if (!ROLES.includes(role as any)) {
+        return NextResponse.json(
+          { message: "無効なロールです" },
+          { status: 400 }
+        );
+      }
+      if (getRoleLevel(role) > userRoleLevel) {
+        return NextResponse.json(
+          { message: "自分より上位のロールは付与できません" },
+          { status: 403 }
+        );
+      }
     }
 
     const trimmedUserid = userid.trim();

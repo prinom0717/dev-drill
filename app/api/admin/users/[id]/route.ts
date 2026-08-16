@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { requireAuth, isAuthError } from "@/lib/auth/require-auth";
+import { requireRole, isAuthError } from "@/lib/auth/require-auth";
+import { getRoleLevel, ROLES } from "@/lib/auth/roles";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -9,20 +10,13 @@ interface RouteContext {
 
 export async function GET(request: NextRequest, context: RouteContext) {
   // 認証チェック
-  const authResult = await requireAuth(request);
+  const authResult = await requireRole(request, ["admin", "host"]);
   if (isAuthError(authResult)) {
     return authResult;
   }
 
   const user = authResult;
-
-  // admin権限チェック
-  if (user.role !== "admin") {
-    return NextResponse.json(
-      { message: "権限がありません。" },
-      { status: 403 }
-    );
-  }
+  const userRoleLevel = getRoleLevel(user.role);
 
   try {
     const { id } = await context.params;
@@ -60,6 +54,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
+    // 自分より上位のロールのユーザーはアクセス不可（自分と同等はOK）
+    if (getRoleLevel(targetUser.role) > userRoleLevel) {
+      return NextResponse.json(
+        { message: "権限がありません。" },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({ user: targetUser });
   } catch (error) {
     console.error("Failed to fetch user:", error);
@@ -72,20 +74,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   // 認証チェック
-  const authResult = await requireAuth(request);
+  const authResult = await requireRole(request, ["admin", "host"]);
   if (isAuthError(authResult)) {
     return authResult;
   }
 
   const user = authResult;
-
-  // admin権限チェック
-  if (user.role !== "admin") {
-    return NextResponse.json(
-      { message: "権限がありません。" },
-      { status: 403 }
-    );
-  }
+  const userRoleLevel = getRoleLevel(user.role);
 
   try {
     const { id } = await context.params;
@@ -106,10 +101,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (role !== undefined) {
       // roleのバリデーション
-      if (!["admin", "editor", "user"].includes(role)) {
+      if (!ROLES.includes(role as any)) {
         return NextResponse.json(
           { message: "無効なロールです" },
           { status: 400 }
+        );
+      }
+      // 自分より上位のロールは付与できない（自分と同等はOK）
+      if (getRoleLevel(role) > userRoleLevel) {
+        return NextResponse.json(
+          { message: "自分より上位のロールは付与できません" },
+          { status: 403 }
         );
       }
       updateData.role = role;
@@ -176,6 +178,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       );
     }
 
+    // 自分より上位のロールのユーザーは編集不可（自分と同等はOK）
+    if (getRoleLevel(existingUser.role) > userRoleLevel) {
+      return NextResponse.json(
+        { message: "権限がありません。" },
+        { status: 403 }
+      );
+    }
+
     // ユーザー更新
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -207,20 +217,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
   // 認証チェック
-  const authResult = await requireAuth(request);
+  const authResult = await requireRole(request, ["admin", "host"]);
   if (isAuthError(authResult)) {
     return authResult;
   }
 
   const user = authResult;
-
-  // admin権限チェック
-  if (user.role !== "admin") {
-    return NextResponse.json(
-      { message: "権限がありません。" },
-      { status: 403 }
-    );
-  }
+  const userRoleLevel = getRoleLevel(user.role);
 
   try {
     const { id } = await context.params;
@@ -253,6 +256,14 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return NextResponse.json(
         { message: "ユーザーが見つかりません" },
         { status: 404 }
+      );
+    }
+
+    // 自分より上位のロールのユーザーは削除不可（自分と同等はOK）
+    if (getRoleLevel(existingUser.role) > userRoleLevel) {
+      return NextResponse.json(
+        { message: "権限がありません。" },
+        { status: 403 }
       );
     }
 

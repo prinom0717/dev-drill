@@ -1,4 +1,5 @@
 import { getExams, addExam, updateExam, deleteExam } from "@/lib/master-drill-store";
+import { requireRole, isAuthError } from "@/lib/auth/require-auth";
 
 export async function GET() {
   const exams = await getExams();
@@ -6,6 +7,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const authResult = await requireRole(request, ["admin", "editor", "host"]);
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const body = await request.json();
     const exam = await addExam(body);
@@ -16,6 +22,11 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const authResult = await requireRole(request, ["admin", "editor", "host"]);
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const body = await request.json();
     const { id, ...data } = body;
@@ -28,6 +39,11 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const authResult = await requireRole(request, ["admin", "editor", "host"]);
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const url = new URL(request.url);
     const idParam = url.searchParams.get("id");

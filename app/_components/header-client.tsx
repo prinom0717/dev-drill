@@ -24,6 +24,8 @@ export default function HeaderClient() {
 
   const getRoleLabel = (role: string) => {
     switch (role) {
+      case "host":
+        return "ホスト";
       case "admin":
         return "管理者";
       case "editor":
@@ -61,19 +63,30 @@ export default function HeaderClient() {
               <div className="absolute right-0 mt-2 w-52 rounded-md border bg-white p-2 shadow-md z-50">
                 <Link href="/" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>ホーム</Link>
                 <div className="border-t my-1"></div>
-                {user.role === "admin" && (
+
+                {/* 管理機能メニュー */}
+                {user.role === "host" && (
                   <>
-                    <Link href="/admin/users" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>ユーザー管理</Link>
                     <Link href="/admin/stats" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>分析</Link>
-                    <Link href="/admin/question-issues" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>起票管理</Link>
-                  </>
-                )}
-                {(user.role === "admin" || user.role === "editor") && (
-                  <>
-                    <Link href="/admin/questions" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>出題管理</Link>
                     <div className="border-t my-1"></div>
                   </>
                 )}
+
+                {/* ユーザー管理 - adminとhostのみ */}
+                {(user.role === "admin" || user.role === "host") && (
+                  <Link href="/admin/users" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>ユーザー管理</Link>
+                )}
+
+                {/* 出題管理と起票管理 - admin, editor, host */}
+                {(user.role === "admin" || user.role === "editor" || user.role === "host") && (
+                  <>
+                    <Link href="/admin/questions" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>出題管理</Link>
+                    <Link href="/admin/question-issues" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>起票管理</Link>
+                    <div className="border-t my-1"></div>
+                  </>
+                )}
+
+                {/* 一般機能メニュー - 全ユーザー */}
                 <Link href="/#qualifications" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>資格一覧</Link>
                 <Link href="/history" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>履歴</Link>
                 <div className="border-t my-1"></div>
@@ -125,6 +138,7 @@ export default function HeaderClient() {
                 <Link href="/register" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>新規登録</Link>
                 <div className="border-t my-1"></div>
                 <Link href="/#qualifications" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>資格一覧</Link>
+                <Link href="/history" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>履歴</Link>
               </div>
             )}
           </div>

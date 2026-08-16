@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import type { ValidationError } from "@/lib/validation";
+import { useAuth } from "@/app/_components/AuthContext";
+import { getRoleLevel, ROLES, type Role } from "@/lib/auth/roles";
 
 import {
   Box,
@@ -42,9 +44,11 @@ interface User {
 }
 
 export default function UsersPage() {
+  const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const userRoleLevel = user ? getRoleLevel(user.role) : 0;
 
   // ユーザー作成モーダル用state
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -98,6 +102,8 @@ export default function UsersPage() {
 
   const getRoleColor = (role: string) => {
     switch (role) {
+       case "host":
+        return "secondary";
       case "admin":
         return "error";
       case "editor":
@@ -115,6 +121,8 @@ export default function UsersPage() {
         return "管理者";
       case "editor":
         return "編集者";
+      case "host":
+        return "ホスト";
       case "user":
         return "一般ユーザー";
       default:
@@ -318,49 +326,61 @@ export default function UsersPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.id}</TableCell>
-                    <TableCell>{user.userid}</TableCell>
-                    <TableCell>{user.email || "-"}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getRoleLabel(user.role)}
-                        color={getRoleColor(user.role) as any}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {user.locked ? (
-                        <Chip label="ロック中" color="error" size="small" />
-                      ) : (
-                        <Chip label="有効" color="success" size="small" />
-                      )}
-                    </TableCell>
-                    <TableCell>{user.failed_attempts}</TableCell>
-                    <TableCell>
-                      {new Date(user.created_at).toLocaleDateString("ja-JP")}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        sx={{ mr: 1 }}
-                        onClick={() => handleEditClick(user)}
-                      >
-                        編集
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="error"
-                        onClick={() => handleDeleteClick(user)}
-                      >
-                        削除
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {users.map((targetUser) => {
+                  const canManage = getRoleLevel(targetUser.role) <= userRoleLevel;
+                  return (
+                    <TableRow key={targetUser.id}>
+                      <TableCell>{targetUser.id}</TableCell>
+                      <TableCell>{targetUser.userid}</TableCell>
+                      <TableCell>{targetUser.email || "-"}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getRoleLabel(targetUser.role)}
+                          color={getRoleColor(targetUser.role) as any}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {targetUser.locked ? (
+                          <Chip label="ロック中" color="error" size="small" />
+                        ) : (
+                          <Chip label="有効" color="success" size="small" />
+                        )}
+                      </TableCell>
+                      <TableCell>{targetUser.failed_attempts}</TableCell>
+                      <TableCell>
+                        {new Date(targetUser.created_at).toLocaleDateString("ja-JP")}
+                      </TableCell>
+                      <TableCell>
+                        {canManage && (
+                          <>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              sx={{ mr: 1 }}
+                              onClick={() => handleEditClick(targetUser)}
+                            >
+                              編集
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => handleDeleteClick(targetUser)}
+                            >
+                              削除
+                            </Button>
+                          </>
+                        )}
+                        {!canManage && (
+                          <Typography variant="body2" color="textSecondary">
+                            権限不足
+                          </Typography>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                 {users.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} align="center">
@@ -425,9 +445,11 @@ export default function UsersPage() {
               onChange={(e) => setCreateRole(e.target.value)}
               disabled={createLoading}
             >
-              <MenuItem value="user">一般ユーザー</MenuItem>
-              <MenuItem value="editor">編集者</MenuItem>
-              <MenuItem value="admin">管理者</MenuItem>
+              {ROLES.filter(role => getRoleLevel(role) <= userRoleLevel).map((role) => (
+                <MenuItem key={role} value={role}>
+                  {role === "user" ? "一般ユーザー" : role === "editor" ? "編集者" : role === "admin" ? "管理者" : role === "host" ? "ホスト" : role}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
         </DialogContent>
@@ -465,9 +487,11 @@ export default function UsersPage() {
               onChange={(e) => setEditRole(e.target.value)}
               disabled={editLoading}
             >
-              <MenuItem value="user">一般ユーザー</MenuItem>
-              <MenuItem value="editor">編集者</MenuItem>
-              <MenuItem value="admin">管理者</MenuItem>
+              {ROLES.filter(role => getRoleLevel(role) <= userRoleLevel).map((role) => (
+                <MenuItem key={role} value={role}>
+                  {role === "user" ? "一般ユーザー" : role === "editor" ? "編集者" : role === "admin" ? "管理者" : role === "host" ? "ホスト" : role}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
           <FormControl fullWidth margin="normal">

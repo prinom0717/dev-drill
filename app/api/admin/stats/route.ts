@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
-import { requireAdmin, isAuthError } from "@/lib/auth/require-auth";
+import { requireHost, isAuthError } from "@/lib/auth/require-auth";
 import { getAdminStats, type AdminStatsFilters } from "@/lib/master-drill-store";
 
 export async function GET(request: NextRequest) {
-  // 認証と管理者権限チェック
-  const authResult = await requireAdmin(request);
+  // 認証と管理者権限チェック（hostのみアクセス可能）
+  const authResult = await requireHost(request);
   if (isAuthError(authResult)) {
     return authResult;
   }

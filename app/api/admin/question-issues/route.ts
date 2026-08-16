@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, isAuthError } from "@/lib/auth/require-auth";
+import { requireRole, isAuthError } from "@/lib/auth/require-auth";
 import { IssueStatus } from "@/lib/question-issues/types";
 
 export async function GET(request: Request) {
-  const authResult = await requireAdmin(request);
+  const authResult = await requireRole(request, ["admin", "editor", "host"]);
   if (isAuthError(authResult)) {
     return authResult;
   }

@@ -35,3 +35,11 @@ export function isAuthError(value: SessionUser | NextResponse): value is NextRes
 export async function requireAdmin(request: Request): Promise<SessionUser | NextResponse> {
   return requireRole(request, ["admin"]);
 }
+
+export async function requireAdminOrHost(request: Request): Promise<SessionUser | NextResponse> {
+  return requireRole(request, ["admin", "host"]);
+}
+
+export async function requireHost(request: Request): Promise<SessionUser | NextResponse> {
+  return requireRole(request, ["host"]);
+}

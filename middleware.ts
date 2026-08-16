@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { getSessionUser } from "@/lib/auth/session";
-import { canEditQuestions, canManageUsers } from "@/lib/auth/roles";
+import { canEditQuestions, canViewAnalysis, canAccessAdminPages } from "@/lib/auth/roles";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -34,23 +34,30 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // /admin/user のアクセス制御（adminのみ）
+  // /admin/user のアクセス制御（adminとhostのみ）
   if (pathname.startsWith("/admin/user")) {
-    if (!canManageUsers(user.role)) {
+    if (user.role !== "admin" && user.role !== "host") {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }
 
-  // /admin/stats のアクセス制御（adminのみ）
+  // /admin/stats のアクセス制御（hostのみ）
   if (pathname.startsWith("/admin/stats")) {
-    if (!canManageUsers(user.role)) {
+    if (!canViewAnalysis(user.role)) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }
 
-  // /admin/questions のアクセス制御（admin/editorのみ）
+  // /admin/questions のアクセス制御（admin/editor/hostのみ）
   if (pathname.startsWith("/admin/questions")) {
-    if (!canEditQuestions(user.role)) {
+    if (!canAccessAdminPages(user.role)) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
+  // /admin/question-issues のアクセス制御（admin/editor/hostのみ）
+  if (pathname.startsWith("/admin/question-issues")) {
+    if (!canAccessAdminPages(user.role)) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }

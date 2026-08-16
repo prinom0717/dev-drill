@@ -1,6 +1,12 @@
 import { bulkAddQuestion, getExamIdByName, getChapterIdByTitle } from "@/lib/master-drill-store";
+import { requireRole, isAuthError } from "@/lib/auth/require-auth";
 
 export async function POST(request: Request) {
+  const authResult = await requireRole(request, ["admin", "editor", "host"]);
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const body = await request.json();
     const { questions } = body;
