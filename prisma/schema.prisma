@@ -7,11 +7,11 @@ datasource db {
 }
 
 model Exam {
-  id          Int           @id @default(autoincrement())
-  exam_name   String
-  description String?
-  created_at  DateTime      @default(now())
-  chapters    ExamChapter[]
+  id             Int             @id @default(autoincrement())
+  exam_name      String
+  description    String?
+  created_at     DateTime        @default(now())
+  chapters       ExamChapter[]
   questionIssues QuestionIssue[]
 }
 
@@ -29,25 +29,25 @@ model ExamChapter {
 }
 
 model Question {
-  id                  Int      @id @default(autoincrement())
-  chapter_id          Int
-  question_type       String
-  question_text       String
-  choices             Json
-  answer              String
-  acceptable_answers  Json?
-  explanation         String?
-  difficulty          Int
-  created_at          DateTime     @default(now())
-  created_by          Int?
-  updated_at          DateTime     @updatedAt
-  updated_by          Int?
-  chapter             ExamChapter  @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
-  userAnswers         UserAnswer[]
-  userMarks           UserMark[]
-  issues              QuestionIssue[]
-  createdByUser       User?       @relation("QuestionCreatedBy", fields: [created_by], references: [id], onDelete: SetNull)
-  updatedByUser       User?       @relation("QuestionUpdatedBy", fields: [updated_by], references: [id], onDelete: SetNull)
+  id                 Int             @id @default(autoincrement())
+  chapter_id         Int
+  question_text      String
+  choices            Json
+  answer             String
+  explanation        String?
+  difficulty         Int
+  created_at         DateTime        @default(now())
+  question_type      String
+  acceptable_answers Json?
+  created_by         Int?
+  updated_at         DateTime        @updatedAt
+  updated_by         Int?
+  chapter            ExamChapter     @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
+  createdByUser      User?           @relation("QuestionCreatedBy", fields: [created_by], references: [id])
+  updatedByUser      User?           @relation("QuestionUpdatedBy", fields: [updated_by], references: [id])
+  issues             QuestionIssue[]
+  userAnswers        UserAnswer[]
+  userMarks          UserMark[]
 
   @@index([chapter_id])
   @@index([created_by])
@@ -56,11 +56,11 @@ model Question {
 
 model UserAnswer {
   id          Int      @id @default(autoincrement())
-  user_id     Int
   question_id Int
   user_answer String?
   is_correct  Boolean
   answered_at DateTime @default(now())
+  user_id     Int
   question    Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
@@ -73,29 +73,29 @@ model UserAnswer {
 }
 
 model User {
-  id              Int          @id @default(autoincrement())
-  userid          String       @unique
-  email           String?      @unique
-  password_hash   String
-  role            String
-  failed_attempts Int          @default(0)
-  locked          Boolean      @default(false)
-  deleted         Boolean      @default(false)
-  created_at      DateTime     @default(now())
-  updated_at      DateTime     @updatedAt
-  answers         UserAnswer[]
-  marks           UserMark[]
-  issues          QuestionIssue[]
-  createdQuestions Question[]  @relation("QuestionCreatedBy")
-  updatedQuestions Question[]  @relation("QuestionUpdatedBy")
+  id               Int             @id @default(autoincrement())
+  userid           String          @unique
+  email            String?         @unique
+  password_hash    String
+  role             String
+  failed_attempts  Int             @default(0)
+  locked           Boolean         @default(false)
+  deleted          Boolean         @default(false)
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+  createdQuestions Question[]      @relation("QuestionCreatedBy")
+  updatedQuestions Question[]      @relation("QuestionUpdatedBy")
+  issues           QuestionIssue[]
+  answers          UserAnswer[]
+  marks            UserMark[]
 }
 
 model UserMark {
   id          Int      @id @default(autoincrement())
-  user_id     Int
   question_id Int
   mark_title  String?
   created_at  DateTime @default(now())
+  user_id     Int
   question    Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
@@ -116,22 +116,21 @@ model RejectedQuestion {
 }
 
 model QuestionIssue {
-  id            Int      @id @default(autoincrement())
-  exam_id       Int?
+  id            Int       @id @default(autoincrement())
   question_id   Int?
   user_id       Int
-  issue_type    String
   description   String
-  status        String   @default("OPEN")
   admin_comment String?
   fixed_content String?
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  issue_type    String
+  status        String    @default("OPEN")
+  exam_id       Int?
+  exam          Exam?     @relation(fields: [exam_id], references: [id], onDelete: Cascade)
+  question      Question? @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  exam     Exam?     @relation(fields: [exam_id], references: [id], onDelete: Cascade)
-  question Question? @relation(fields: [question_id], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  
   @@index([exam_id])
   @@index([question_id])
   @@index([user_id])
