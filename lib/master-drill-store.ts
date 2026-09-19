@@ -34,6 +34,11 @@ export type Question = {
   explanation: string;
   difficulty: number;
   createdAt: string;
+  createdBy?: number;
+  updatedBy?: number;
+  updatedAt?: string;
+  createdByUser?: { id: number; userid: string };
+  updatedByUser?: { id: number; userid: string };
 };
 
 export type UserAnswerRecord = {
@@ -260,7 +265,13 @@ export async function getChapterById(qualificationId: string, chapterId: number)
 
 export async function getQuestionById(questionId: number) {
   try {
-    const q = await prisma.question.findUnique({ where: { id: questionId } });
+    const q = await prisma.question.findUnique({ 
+      where: { id: questionId },
+      include: {
+        createdByUser: true,
+        updatedByUser: true
+      }
+    });
     if (!q) throw new Error("Question not found");
     return {
       id: q.id,
@@ -274,6 +285,11 @@ export async function getQuestionById(questionId: number) {
       explanation: q.explanation ?? "",
       difficulty: q.difficulty ?? 1,
       createdAt: q.created_at.toISOString(),
+      createdBy: q.created_by ?? undefined,
+      updatedBy: q.updated_by ?? undefined,
+      updatedAt: q.updated_at?.toISOString() ?? undefined,
+      createdByUser: q.createdByUser ? { id: q.createdByUser.id, userid: q.createdByUser.userid } : undefined,
+      updatedByUser: q.updatedByUser ? { id: q.updatedByUser.id, userid: q.updatedByUser.userid } : undefined,
     } as Question;
   } catch (e) {
     throw new Error(`Failed to fetch question: ${e instanceof Error ? e.message : String(e)}`);
@@ -288,7 +304,7 @@ export async function getQuestions(options?: { qualificationId?: string; chapter
       if (typeof options.chapterId === "number") {
         where.chapter_id = options.chapterId;
       }
-      const include = options?.includeExamChapter ? { chapter: { include: { exam: true } } } : undefined;
+      const include = options?.includeExamChapter ? { chapter: { include: { exam: true } }, createdByUser: true, updatedByUser: true } : { createdByUser: true, updatedByUser: true };
       const questions = await prisma.question.findMany({ where: { chapter: { exam_id: examId }, ...where } as any, include });
       let mapped = questions.map((q: any) => {
         const base: any = {
@@ -303,6 +319,11 @@ export async function getQuestions(options?: { qualificationId?: string; chapter
           explanation: q.explanation ?? "",
           difficulty: q.difficulty ?? 1,
           createdAt: q.created_at.toISOString(),
+          createdBy: q.created_by ?? undefined,
+          updatedBy: q.updated_by ?? undefined,
+          updatedAt: q.updated_at?.toISOString() ?? undefined,
+          createdByUser: q.createdByUser ? { id: q.createdByUser.id, userid: q.createdByUser.userid } : undefined,
+          updatedByUser: q.updatedByUser ? { id: q.updatedByUser.id, userid: q.updatedByUser.userid } : undefined,
         };
         if (options?.includeExamChapter && q.chapter) {
           base.examName = q.chapter.exam?.exam_name ?? String(q.chapter.exam_id);
@@ -413,7 +434,7 @@ export async function getQuestions(options?: { qualificationId?: string; chapter
   }
 }
 
-export async function addQuestion(input: { qualificationId: string; chapterId: number; questionType: QuestionType; questionText: string; choices: string[]; answer: string; acceptableAnswers?: string[]; explanation?: string; difficulty?: number; }) {
+export async function addQuestion(input: { qualificationId: string; chapterId: number; questionType: QuestionType; questionText: string; choices: string[]; answer: string; acceptableAnswers?: string[]; explanation?: string; difficulty?: number; userId?: number; }) {
   try {
     const created = await prisma.question.create({ data: {
       chapter_id: input.chapterId,
@@ -424,6 +445,8 @@ export async function addQuestion(input: { qualificationId: string; chapterId: n
       acceptable_answers: input.acceptableAnswers as any,
       explanation: input.explanation ?? "",
       difficulty: input.difficulty ?? 1,
+      created_by: input.userId,
+      updated_by: input.userId,
     } });
     return await getQuestionById(created.id);
   } catch (e) {
@@ -431,7 +454,7 @@ export async function addQuestion(input: { qualificationId: string; chapterId: n
   }
 }
 
-export async function updateQuestion(input: { id: number; fields: Partial<Omit<Question, "id" | "createdAt">> }) {
+export async function updateQuestion(input: { id: number; fields: Partial<Omit<Question, "id" | "createdAt">>; userId?: number; }) {
   try {
     const data: any = { ...input.fields };
     if (data.questionText) data.question_text = data.questionText;
@@ -442,6 +465,9 @@ export async function updateQuestion(input: { id: number; fields: Partial<Omit<Q
     delete data.questionText;
     delete data.questionType;
     delete data.acceptableAnswers;
+    if (input.userId) {
+      data.updated_by = input.userId;
+    }
     const updated = await prisma.question.update({ where: { id: input.id }, data });
     return await getQuestionById(updated.id);
   } catch (e) {
@@ -458,7 +484,7 @@ export async function deleteQuestion(id: number) {
   }
 }
 
-export async function bulkAddQuestion(inputs: Array<{ qualificationId: string; chapterId: number; questionType: QuestionType; questionText: string; choices: string[]; answer: string; acceptableAnswers?: string[]; explanation?: string; difficulty?: number; }>) {
+export async function bulkAddQuestion(inputs: Array<{ qualificationId: string; chapterId: number; questionType: QuestionType; questionText: string; choices: string[]; answer: string; acceptableAnswers?: string[]; explanation?: string; difficulty?: number; userId?: number; }>) {
   const results = [];
   for (const input of inputs) {
     try {
@@ -472,6 +498,8 @@ export async function bulkAddQuestion(inputs: Array<{ qualificationId: string; c
           acceptable_answers: input.acceptableAnswers as any,
           explanation: input.explanation ?? "",
           difficulty: input.difficulty ?? 1,
+          created_by: input.userId,
+          updated_by: input.userId,
         },
       });
       results.push({ success: true, question: await getQuestionById(created.id) });

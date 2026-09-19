@@ -881,6 +881,11 @@ export default function AdminPage() {
                       <div className="mt-1 text-sm" style={{ padding: "5px 30px", wordBreak: 'break-word' }}>
                         {q.choices?.map((c:any,i:number)=>(<div key={i}>{i+1}. {c}</div>))}
                       </div>
+                      <div className="mt-2 text-xs text-slate-500">
+                        作成者: {q.createdByUser?.userid || '不明'} | 
+                        更新者: {q.updatedByUser?.userid || '不明'} | 
+                        更新日時: {q.updatedAt ? new Date(q.updatedAt).toLocaleString('ja-JP') : '不明'}
+                      </div>
                     </Box>
                     <Stack direction="row" spacing={2}>
                       <Button onClick={() => handleEditQuestion(q)} variant="outlined" size="small">編集</Button>
@@ -1210,6 +1215,11 @@ export default function AdminPage() {
                       <div className="mt-1 text-sm" style={{ padding: "5px 30px", wordBreak: 'break-word' }}>
                         {q.choices?.map((c:any,i:number)=>(<div key={i}>{i+1}. {c}</div>))}
                       </div>
+                      <div className="mt-2 text-xs text-slate-500">
+                        作成者: {q.createdByUser?.userid || '不明'} | 
+                        更新者: {q.updatedByUser?.userid || '不明'} | 
+                        更新日時: {q.updatedAt ? new Date(q.updatedAt).toLocaleString('ja-JP') : '不明'}
+                      </div>
                     </Box>
                     <Stack direction={isMobile ? "row" : "row"} spacing={2}>
                       <Button onClick={() => handleEditQuestion(q)} variant="outlined" size="small">編集</Button>
@@ -1295,60 +1305,4 @@ export default function AdminPage() {
       </Dialog>
     </div>
   );
-}
-
-// CSVインポート関数を追加
-async function handleCSVImport(csvText: string) {
-  const lines = csvText.trim().split("\n");
-  const questions = [];
-  const startIndex = lines[0].startsWith("試験名") || lines[0].startsWith("examName") ? 1 : 0;
-
-  for (let i = startIndex; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    const parts = line.split(",").map(p => p.trim());
-
-    if (parts.length >= 8) {
-      const examName = parts[0];
-      const chapterTitle = parts[1];
-      const question = {
-        examName,
-        chapterTitle,
-        questionType: "choice",
-        questionText: parts[2],
-        choices: parts.slice(3, 7),
-        answer: Number(parts[7]),
-        explanation: parts[8] || "",
-        difficulty: Number(parts[9]) || 1,
-      };
-
-      if (!examName || !chapterTitle) continue;
-      if (isNaN(question.answer) || question.answer < 1 || question.answer > 4) continue;
-      if (question.choices.length !== 4) continue;
-
-      questions.push(question);
-    }
-  }
-
-  try {
-    const res = await fetch(`/api/questions/bulk`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ questions }),
-    });
-
-    const data = await res.json();
-    if (data.ok) {
-      const successCount = data.results.filter((r: any) => r.success).length;
-      alert(`${successCount}件の問題をインポートしました`);
-      (document.getElementById("csv-text") as HTMLTextAreaElement).value = "";
-      // 問題リストを更新
-      location.reload();
-    } else {
-      alert(`インポートに失敗しました: ${data.message}`);
-    }
-  } catch (e) {
-    console.error("CSVインポート失敗", e);
-    alert("CSVインポートに失敗しました");
-  }
 }

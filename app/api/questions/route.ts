@@ -1,6 +1,7 @@
 import { getQuestions, addQuestion, updateQuestion, deleteQuestion } from "@/lib/master-drill-store";
 import { validateQuestion } from "@/lib/validation";
 import { requireRole, isAuthError } from "@/lib/auth/require-auth";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -28,8 +29,9 @@ export async function POST(request: Request) {
   }
 
   try {
+    const user = await getSessionUser(request);
     const body = await request.json();
-    const question = await addQuestion(body);
+    const question = await addQuestion({ ...body, userId: user?.id });
     return Response.json({ ok: true, question });
   } catch (err: any) {
     return Response.json({ ok: false, message: err?.message ?? String(err) }, { status: 400 });
@@ -43,6 +45,7 @@ export async function PUT(request: Request) {
   }
 
   try {
+    const user = await getSessionUser(request);
     const body = await request.json();
     const { id, fields } = body;
 
@@ -66,7 +69,7 @@ export async function PUT(request: Request) {
       }
     }
 
-    const updated = await updateQuestion(body);
+    const updated = await updateQuestion({ ...body, userId: user?.id });
     if (!updated) return Response.json({ ok: false, message: "Question not found" }, { status: 404 });
     return Response.json({ ok: true, question: updated });
   } catch (err: any) {

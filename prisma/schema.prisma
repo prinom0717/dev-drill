@@ -39,12 +39,19 @@ model Question {
   explanation         String?
   difficulty          Int
   created_at          DateTime     @default(now())
+  created_by          Int?
+  updated_at          DateTime     @updatedAt
+  updated_by          Int?
   chapter             ExamChapter  @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
   userAnswers         UserAnswer[]
   userMarks           UserMark[]
   issues              QuestionIssue[]
+  createdByUser       User?       @relation("QuestionCreatedBy", fields: [created_by], references: [id], onDelete: SetNull)
+  updatedByUser       User?       @relation("QuestionUpdatedBy", fields: [updated_by], references: [id], onDelete: SetNull)
 
   @@index([chapter_id])
+  @@index([created_by])
+  @@index([updated_by])
 }
 
 model UserAnswer {
@@ -79,6 +86,8 @@ model User {
   answers         UserAnswer[]
   marks           UserMark[]
   issues          QuestionIssue[]
+  createdQuestions Question[]  @relation("QuestionCreatedBy")
+  updatedQuestions Question[]  @relation("QuestionUpdatedBy")
 }
 
 model UserMark {

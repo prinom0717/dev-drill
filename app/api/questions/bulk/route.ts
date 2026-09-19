@@ -1,5 +1,6 @@
 import { bulkAddQuestion, getExamIdByName, getChapterIdByTitle } from "@/lib/master-drill-store";
 import { requireRole, isAuthError } from "@/lib/auth/require-auth";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function POST(request: Request) {
   const authResult = await requireRole(request, ["admin", "editor", "host"]);
@@ -8,6 +9,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const user = await getSessionUser(request);
     const body = await request.json();
     const { questions } = body;
 
@@ -51,7 +53,8 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    const results = await bulkAddQuestion(validQuestions);
+    const questionsWithUserId = validQuestions.map((q: any) => ({ ...q, userId: user?.id }));
+    const results = await bulkAddQuestion(questionsWithUserId);
     return Response.json({ ok: true, results });
   } catch (err: any) {
     return Response.json({ ok: false, message: err?.message ?? String(err) }, { status: 400 });
