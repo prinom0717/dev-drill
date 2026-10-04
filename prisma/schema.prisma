@@ -88,11 +88,13 @@ model User {
   issues           QuestionIssue[]
   answers          UserAnswer[]
   marks            UserMark[]
+  marksConfig      MarkConfig?
 }
 
 model UserMark {
   id          Int      @id @default(autoincrement())
   question_id Int
+  mark_type   Int      @default(1)
   mark_title  String?
   created_at  DateTime @default(now())
   user_id     Int
@@ -101,6 +103,20 @@ model UserMark {
 
   @@index([user_id])
   @@index([question_id])
+  @@index([user_id, question_id, mark_type])
+}
+
+model MarkConfig {
+  id            Int      @id @default(autoincrement())
+  user_id       Int      @unique
+  mark_type_1   String   @default("チェック1")
+  mark_type_2   String   @default("チェック2")
+  mark_type_3   String   @default("チェック3")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
 }
 
 model RejectedQuestion {

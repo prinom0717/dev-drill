@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CircularProgress, Box, Button } from "@mui/material";
 
 import type { Question } from "@/lib/master-drill-store";
@@ -30,6 +30,95 @@ export function QuizPlayClient({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [issueModalOpen, setIssueModalOpen] = useState(false);
+  const [currentMarks, setCurrentMarks] = useState<Set<number>>(new Set());
+  const [markTitles, setMarkTitles] = useState<{ 1: string; 2: string; 3: string }>({
+    1: "チェック1",
+    2: "チェック2",
+    3: "チェック3",
+  });
+
+  const markColors = {
+    1: {
+      active: "border-amber-500 bg-amber-50 text-amber-700",
+      inactive: "border-slate-200 bg-slate-50 text-slate-600 hover:border-amber-300 hover:bg-amber-50",
+    },
+    2: {
+      active: "border-blue-500 bg-blue-50 text-blue-700",
+      inactive: "border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300 hover:bg-blue-50",
+    },
+    3: {
+      active: "border-green-500 bg-green-50 text-green-700",
+      inactive: "border-slate-200 bg-slate-50 text-slate-600 hover:border-green-300 hover:bg-green-50",
+    },
+  };
+
+  // Fetch current marks and mark config when question changes
+  useEffect(() => {
+    if (!question) return;
+
+    async function fetchMarks() {
+      try {
+        // Fetch current marks for this question
+        const marksResponse = await fetch("/api/mark");
+        if (marksResponse.ok) {
+          const marksData = await marksResponse.json();
+          const questionMarks = marksData.marks
+            .filter((m: any) => m.questionId === question.id)
+            .map((m: any) => m.markType);
+          setCurrentMarks(new Set(questionMarks));
+        }
+
+        // Fetch mark config
+        const configResponse = await fetch("/api/mark/config");
+        if (configResponse.ok) {
+          const configData = await configResponse.json();
+          setMarkTitles({
+            1: configData.config.markType1,
+            2: configData.config.markType2,
+            3: configData.config.markType3,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch marks:", error);
+      }
+    }
+
+    fetchMarks();
+  }, [question]);
+
+  async function handleMarkToggle(markType: number) {
+    if (!question) return;
+
+    try {
+      if (currentMarks.has(markType)) {
+        // Remove mark
+        await fetch(`/api/mark?questionId=${question.id}&markType=${markType}`, {
+          method: "DELETE",
+        });
+        setCurrentMarks((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(markType);
+          return newSet;
+        });
+      } else {
+        // Add mark
+        const response = await fetch("/api/mark", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            questionId: question.id,
+            markType,
+          }),
+        });
+
+        if (response.ok) {
+          setCurrentMarks((prev) => new Set([...prev, markType]));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to toggle mark:", error);
+    }
+  }
 
   async function handleAnswer(questionId: number, userAnswer: number | string) {
     setPendingQuestionId(questionId);
@@ -116,15 +205,17 @@ export function QuizPlayClient({
               <span className="h-1 w-1 rounded-full bg-amber-300" />
               <span>難易度 {question.difficulty}</span>
             </div>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => setIssueModalOpen(true)}
-              disabled={pendingQuestionId !== null}
-              sx={{ fontSize: '0.75rem' }}
-            >
-              不備を起票
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => setIssueModalOpen(true)}
+                disabled={pendingQuestionId !== null}
+                sx={{ fontSize: '0.75rem' }}
+              >
+                不備を起票
+              </Button>
+            </div>
           </div>
           <h3 className="mt-3 text-lg font-semibold text-slate-900" style={{ margin: "0 10px", whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{question.questionText}</h3>
 
@@ -155,6 +246,33 @@ export function QuizPlayClient({
               />
             </div>
           )}
+        </article>
+      )}
+
+      {/* Mark buttons - separate section */}
+      {question && (
+        <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_20px_50px_-44px_rgba(15,23,42,0.3)]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">チェックマーク</p>
+          <div className="mt-4 flex gap-2">
+            {[1, 2, 3].map((markType) => (
+              <button
+                key={markType}
+                type="button"
+                onClick={() => handleMarkToggle(markType)}
+                disabled={pendingQuestionId !== null}
+                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition ${
+                  currentMarks.has(markType)
+                    ? markColors[markType as keyof typeof markColors].active
+                    : markColors[markType as keyof typeof markColors].inactive
+                }`}
+              >
+                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-current">
+                  {currentMarks.has(markType) && "✓"}
+                </span>
+                <span>{markTitles[markType as keyof typeof markTitles]}</span>
+              </button>
+            ))}
+          </div>
         </article>
       )}
 

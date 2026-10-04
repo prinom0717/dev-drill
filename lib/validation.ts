@@ -124,6 +124,23 @@ export function validateDifficulty(difficulty: number): ValidationResult {
 }
 
 /**
+ * マークタイプのバリデーション
+ * - 1〜3の範囲内
+ */
+export function validateMarkType(markType: number): ValidationResult {
+  const errors: ValidationError[] = [];
+
+  if (isNaN(markType) || markType < 1 || markType > 3) {
+    errors.push({ field: 'markType', message: 'マークタイプは1〜3の範囲で指定してください' });
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
  * 科目と章の組み合わせバリデーション
  * - 科目と章の組み合わせが正しいかチェック
  */

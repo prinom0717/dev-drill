@@ -55,6 +55,7 @@ export type UserMarkRecord = {
   id: number;
   userId: number;
   questionId: number;
+  markType: number;
   markTitle: string;
   createdAt: string;
   question?: Question | null;
@@ -661,19 +662,55 @@ export async function getQuestionHistoryCount(userId: number, questionId: number
   }
 }
 
-export async function getMarks(userId: number) {
+export async function getMarks(userId: number, options?: { markType?: number; }) {
   try {
-    const rows = await prisma.userMark.findMany({ where: { user_id: userId }, include: { question: true }, orderBy: { created_at: "desc" } });
-    return rows.map((r: any) => ({ id: r.id, userId: r.user_id, questionId: r.question_id, markTitle: r.mark_title ?? "", createdAt: r.created_at.toISOString(), question: r.question ? { id: r.question.id, qualificationId: String(r.question.chapter_id), chapterId: r.question.chapter_id, questionType: r.question.question_type as QuestionType, questionText: r.question.question_text, choices: Array.isArray(r.question.choices) ? (r.question.choices as string[]) : [], answer: r.question.answer, explanation: r.question.explanation ?? "", difficulty: r.question.difficulty ?? 1, createdAt: r.question.created_at.toISOString() } : null }));
+    const where: any = { user_id: userId };
+    if (options?.markType) {
+      where.mark_type = options.markType;
+    }
+    const rows = await prisma.userMark.findMany({ where, include: { question: true }, orderBy: { created_at: "desc" } });
+    
+    // Get user's mark config for default titles
+    const markConfig = await prisma.markConfig.findUnique({ where: { user_id: userId } });
+    const defaultTitles = {
+      1: markConfig?.mark_type_1 ?? "チェック1",
+      2: markConfig?.mark_type_2 ?? "チェック2",
+      3: markConfig?.mark_type_3 ?? "チェック3",
+    };
+    
+    return rows.map((r: any) => ({
+      id: r.id,
+      userId: r.user_id,
+      questionId: r.question_id,
+      markType: r.mark_type,
+      markTitle: r.mark_title ?? defaultTitles[r.mark_type as keyof typeof defaultTitles] ?? "",
+      createdAt: r.created_at.toISOString(),
+      question: r.question ? {
+        id: r.question.id,
+        qualificationId: String(r.question.chapter_id),
+        chapterId: r.question.chapter_id,
+        questionType: r.question.question_type as QuestionType,
+        questionText: r.question.question_text,
+        choices: Array.isArray(r.question.choices) ? (r.question.choices as string[]) : [],
+        answer: r.question.answer,
+        explanation: r.question.explanation ?? "",
+        difficulty: r.question.difficulty ?? 1,
+        createdAt: r.question.created_at.toISOString()
+      } : null
+    }));
   } catch (e) {
     throw new Error(`Failed to fetch marks: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
-export async function addMark(input: { userId?: number; questionId: number; markTitle?: string; }) {
+export async function addMark(input: { userId?: number; questionId: number; markType?: number; markTitle?: string; }) {
   const userId = input.userId;
   if (typeof userId !== "number") {
     return { ok: false as const, message: "User ID is required." };
+  }
+  const markType = input.markType ?? 1;
+  if (markType < 1 || markType > 3) {
+    return { ok: false as const, message: "Mark type must be between 1 and 3." };
   }
   try {
     await prisma.user.upsert({ where: { id: userId }, update: {}, create: { 
@@ -681,26 +718,129 @@ export async function addMark(input: { userId?: number; questionId: number; mark
       password_hash: "dummy", // 必須フィールド
       role: "user" // 必須フィールド
     }});
-    const currentCount = await prisma.userMark.count({ where: { user_id: userId, question_id: input.questionId } });
-    if (currentCount >= 5) return { ok: false as const, message: "同じ問題には最大5件まで登録できます。" };
-    const created = await prisma.userMark.create({ data: { user_id: userId, question_id: input.questionId, mark_title: input.markTitle ?? undefined } });
-    return { ok: true as const, record: { id: created.id, userId: created.user_id, questionId: created.question_id, markTitle: created.mark_title ?? "", createdAt: created.created_at.toISOString() } };
+    const currentCount = await prisma.userMark.count({ where: { user_id: userId, question_id: input.questionId, mark_type: markType } });
+    if (currentCount >= 1) return { ok: false as const, message: "同じ問題には各種類1件まで登録できます。" };
+    const created = await prisma.userMark.create({ data: { user_id: userId, question_id: input.questionId, mark_type: markType, mark_title: input.markTitle ?? undefined } });
+    return { ok: true as const, record: { id: created.id, userId: created.user_id, questionId: created.question_id, markType: created.mark_type, markTitle: created.mark_title ?? "", createdAt: created.created_at.toISOString() } };
   } catch (e) {
     return { ok: false as const, message: "DB error" };
   }
 }
 
-export async function removeMark(input: { userId?: number; questionId: number; markId?: number; }) {
+export async function removeMark(input: { userId?: number; questionId: number; markId?: number; markType?: number; }) {
   const userId = input.userId;
   try {
     if (typeof input.markId === "number") {
       const deleted = await prisma.userMark.deleteMany({ where: { id: input.markId, user_id: userId, question_id: input.questionId } });
       return { removed: deleted.count };
     }
+    if (typeof input.markType === "number") {
+      const deleted = await prisma.userMark.deleteMany({ where: { user_id: userId, question_id: input.questionId, mark_type: input.markType } });
+      return { removed: deleted.count };
+    }
     const deleted = await prisma.userMark.deleteMany({ where: { user_id: userId, question_id: input.questionId } });
     return { removed: deleted.count };
   } catch (e) {
     throw new Error(`Failed to remove mark: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+export async function getMarkConfig(userId: number) {
+  try {
+    const config = await prisma.markConfig.findUnique({ where: { user_id: userId } });
+    if (!config) {
+      // Return default config if not exists
+      return {
+        userId,
+        markType1: "チェック1",
+        markType2: "チェック2",
+        markType3: "チェック3",
+      };
+    }
+    return {
+      userId: config.user_id,
+      markType1: config.mark_type_1,
+      markType2: config.mark_type_2,
+      markType3: config.mark_type_3,
+    };
+  } catch (e) {
+    throw new Error(`Failed to fetch mark config: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+export async function updateMarkConfig(userId: number, input: { markType1?: string; markType2?: string; markType3?: string; resetToDefaults?: boolean; }) {
+  try {
+    if (input.resetToDefaults) {
+      // Reset to defaults
+      const config = await prisma.markConfig.upsert({
+        where: { user_id: userId },
+        update: {
+          mark_type_1: "チェック1",
+          mark_type_2: "チェック2",
+          mark_type_3: "チェック3",
+        },
+        create: {
+          user_id: userId,
+          mark_type_1: "チェック1",
+          mark_type_2: "チェック2",
+          mark_type_3: "チェック3",
+        },
+      });
+      return {
+        userId: config.user_id,
+        markType1: config.mark_type_1,
+        markType2: config.mark_type_2,
+        markType3: config.mark_type_3,
+      };
+    }
+
+    // Update specific fields
+    const updateData: any = {};
+    if (input.markType1 !== undefined) updateData.mark_type_1 = input.markType1;
+    if (input.markType2 !== undefined) updateData.mark_type_2 = input.markType2;
+    if (input.markType3 !== undefined) updateData.mark_type_3 = input.markType3;
+
+    const config = await prisma.markConfig.upsert({
+      where: { user_id: userId },
+      update: updateData,
+      create: {
+        user_id: userId,
+        mark_type_1: input.markType1 ?? "チェック1",
+        mark_type_2: input.markType2 ?? "チェック2",
+        mark_type_3: input.markType3 ?? "チェック3",
+      },
+    });
+
+    return {
+      userId: config.user_id,
+      markType1: config.mark_type_1,
+      markType2: config.mark_type_2,
+      markType3: config.mark_type_3,
+    };
+  } catch (e) {
+    throw new Error(`Failed to update mark config: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+export function getDefaultMarkTitles() {
+  return {
+    1: "チェック1",
+    2: "チェック2",
+    3: "チェック3",
+  };
+}
+
+export async function migrateExistingMarks() {
+  try {
+    // Get all existing marks (mark_type has default value, so no null values exist)
+    // This function is kept for compatibility but may not be needed
+    const allMarks = await prisma.userMark.findMany();
+    
+    // All marks should already have mark_type due to default value
+    // No migration needed, but return count for reference
+    return { migrated: 0, total: allMarks.length };
+  } catch (e) {
+    throw new Error(`Failed to migrate existing marks: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 

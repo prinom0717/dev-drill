@@ -23,16 +23,21 @@ export async function POST(request: Request) {
   const user = authResult;
 
   const body = (await request.json().catch(() => null)) as
-    | { questionId?: number; markTitle?: string }
+    | { questionId?: number; markType?: number; markTitle?: string }
     | null;
 
   if (!body?.questionId) {
     return Response.json({ message: "questionId は必須です。" }, { status: 400 });
   }
 
+  if (body.markType !== undefined && (body.markType < 1 || body.markType > 3)) {
+    return Response.json({ message: "markType は1〜3の範囲で指定してください。" }, { status: 400 });
+  }
+
   const mark = await addMark({
     userId: user.id,
     questionId: body.questionId,
+    markType: body.markType,
     markTitle: body.markTitle,
   });
 
@@ -58,8 +63,15 @@ export async function DELETE(request: Request) {
 
   const url = new URL(request.url);
   const questionId = Number(url.searchParams.get("questionId") ?? "0");
+  const markType = url.searchParams.get("markType");
+  const markId = url.searchParams.get("markId");
 
-  const result = await removeMark({ userId: user.id, questionId });
+  const result = await removeMark({ 
+    userId: user.id, 
+    questionId,
+    markType: markType ? Number(markType) : undefined,
+    markId: markId ? Number(markId) : undefined,
+  });
 
   return Response.json({ removed: result.removed });
 }

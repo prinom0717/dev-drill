@@ -1,11 +1,14 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import {
   getQuestionById,
   getQualificationById,
+  getMarks,
 } from "@/lib/master-drill-store";
 import { QuestionIssueButton } from "@/lib/question-issue-button";
+import { ResultMarkButtons } from "./result-mark-buttons";
+import { getSessionUser } from "@/lib/auth/server-session";
 
 export default async function ResultPage({
   params,
@@ -14,6 +17,11 @@ export default async function ResultPage({
   params: Promise<{ qualificationId: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const user = await getSessionUser();
+  if (!user) {
+    redirect("/login");
+  }
+
   const { qualificationId } = await params;
   const query = await searchParams;
   const qualification = await getQualificationById(qualificationId);
@@ -37,6 +45,12 @@ export default async function ResultPage({
   if (!question) {
     notFound();
   }
+
+  // Fetch marks for the current question
+  const marks = await getMarks(user.id);
+  const currentMarks = marks
+    .filter((m) => m.questionId === questionId)
+    .map((m) => m.markType);
 
   // 問題タイプによる回答表示の分岐
   let chosenAnswer: string;
@@ -86,6 +100,11 @@ export default async function ResultPage({
         <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">解説</p>
           <p className="mt-2 leading-7 text-slate-700" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{question.explanation}</p>
+        </div>
+
+        <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">チェックマーク</p>
+          <ResultMarkButtons questionId={questionId} currentMarks={currentMarks} />
         </div>
 
         <div className="mt-6 flex flex-wrap gap-3">

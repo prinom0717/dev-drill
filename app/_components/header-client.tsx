@@ -89,6 +89,7 @@ export default function HeaderClient() {
                 {/* 一般機能メニュー - 全ユーザー */}
                 <Link href="/#qualifications" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>資格一覧</Link>
                 <Link href="/history" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>履歴</Link>
+                <Link href="/marks" className="block px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setOpen(false)}>チェックマーク設定</Link>
                 <div className="border-t my-1"></div>
                 <button
                   onClick={handleLogout}
