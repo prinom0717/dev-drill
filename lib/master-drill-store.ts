@@ -297,13 +297,16 @@ export async function getQuestionById(questionId: number) {
   }
 }
 
-export async function getQuestions(options?: { qualificationId?: string; chapterId?: number; limit?: number; random?: boolean; includeExamChapter?: boolean; prioritizeUnanswered?: number; shuffle?: boolean; }) {
+export async function getQuestions(options?: { qualificationId?: string; chapterId?: number; limit?: number; random?: boolean; includeExamChapter?: boolean; prioritizeUnanswered?: number; shuffle?: boolean; questionType?: "choice" | "descriptive" | "all"; }) {
   try {
     if (options?.qualificationId && isNumericId(options.qualificationId)) {
       const examId = Number(options.qualificationId);
       const where: any = {};
       if (typeof options.chapterId === "number") {
         where.chapter_id = options.chapterId;
+      }
+      if (options.questionType && options.questionType !== "all") {
+        where.question_type = options.questionType;
       }
       const include = options?.includeExamChapter ? { chapter: { include: { exam: true } }, createdByUser: true, updatedByUser: true } : { createdByUser: true, updatedByUser: true };
       const questions = await prisma.question.findMany({ where: { chapter: { exam_id: examId }, ...where } as any, include });

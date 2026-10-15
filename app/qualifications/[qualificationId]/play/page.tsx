@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { QuizPlayClient } from "@/app/_components/quiz-play-client";
+import { QuestionTypeSelector } from "@/app/_components/question-type-selector";
 import {
   getChapterById,
   getHistory,
@@ -47,6 +48,7 @@ export default async function PlayPage({
   const questionIdsFromUrl = parseQuestionIds(query.questionIds);
   const count = Number(query.count ?? "0");
   const reviewQuestionId = Number(query.questionId ?? "0");
+  const questionType: "choice" | "descriptive" | "all" | undefined = query.questionType === "choice" || query.questionType === "descriptive" || query.questionType === "all" ? query.questionType : undefined;
 
   let orderedQuestions: any[] = [];
   let currentQuestion: any = null;
@@ -73,6 +75,7 @@ export default async function PlayPage({
     if (wrongAnswers.length > 0) {
       mistakeQuestions = (await getQuestions({
         qualificationId,
+        questionType,
       })).filter((question: any) => wrongAnswers.includes(question.id));
     }
 
@@ -88,9 +91,12 @@ export default async function PlayPage({
 
     const allQuestions = await getQuestions({
       qualificationId,
+      questionType,
     });
 
-    const unansweredQuestions = allQuestions.filter((question: any) => !answeredQuestionIds.includes(question.id)).sort(() => Math.random() - 0.5);
+    let unansweredQuestions = allQuestions.filter((question: any) => !answeredQuestionIds.includes(question.id));
+    
+    unansweredQuestions = unansweredQuestions.sort(() => Math.random() - 0.5);
     orderedQuestions = unansweredQuestions;
     currentQuestion = unansweredQuestions[0] || null;
     currentIndex = 0;
@@ -110,7 +116,9 @@ export default async function PlayPage({
         random: mode === "random",
         limit: count > 0 ? count : (mode === "random" ? 10 : undefined),
         prioritizeUnanswered: user.id,
+        questionType: mode === "random" ? questionType : undefined,
       });
+      
       orderedQuestions = questions;
     }
     currentIndex = Number(query.index ?? "0");
@@ -133,11 +141,11 @@ export default async function PlayPage({
             </h1>
             <p className="mt-3 text-sm text-slate-600">
               {mode === "random"
-                ? `ランダム出題 ${orderedQuestions.length} 問を1問ずつ`
+                ? `ランダム出題 ${orderedQuestions.length} 問を1問ずつ${questionType === "choice" ? "（選択問題のみ）" : questionType === "descriptive" ? "（記述問題のみ）" : ""}`
                 : mode === "review"
                 ? "単一問題の復習"
                 : mode === "unanswered"
-                ? `未出題問題 ${orderedQuestions.length} 問を1問ずつ解く`
+                ? `未出題問題 ${orderedQuestions.length} 問を1問ずつ解く${questionType === "choice" ? "（選択問題のみ）" : questionType === "descriptive" ? "（記述問題のみ）" : ""}`
                 : mode === "mistakes"
                 ? `間違えた問題 ${orderedQuestions.length} 問を1問ずつ解く`
                 : chapter
@@ -168,12 +176,25 @@ export default async function PlayPage({
           {mode === "unanswered" ? (
             <div>
               <p className="text-lg font-semibold">未出題問題はありません</p>
-              <p className="mt-2 text-sm">すべての問題に解答済みです。他のモードをお試しください。</p>
+              {questionType && questionType !== "all" ? (
+                <p className="mt-2 text-sm">
+                  選択したタイプの問題はありません。他のタイプを選択するか、問題タイプを「両方」に変更してください。
+                </p>
+              ) : (
+                <p className="mt-2 text-sm">すべての問題に解答済みです。他のモードをお試しください。</p>
+              )}
             </div>
           ) : mode === "mistakes" ? (
             <div>
               <p className="text-lg font-semibold">間違えた問題はありません</p>
               <p className="mt-2 text-sm">すべての問題を正解しています。素晴らしい！</p>
+            </div>
+          ) : mode === "random" && questionType && questionType !== "all" ? (
+            <div>
+              <p className="text-lg font-semibold">問題が見つかりませんでした</p>
+              <p className="mt-2 text-sm">
+                選択したタイプの問題はありません。他のタイプを選択するか、問題タイプを「両方」に変更してください。
+              </p>
             </div>
           ) : (
             <p>この条件では問題が見つかりませんでした。</p>
@@ -189,6 +210,13 @@ export default async function PlayPage({
           chapterId={chapterId}
         />
       )}
+
+      <QuestionTypeSelector
+        mode={mode === "random" || mode === "unanswered" ? mode : "random"}
+        qualificationId={qualificationId}
+        chapterId={chapterId}
+        count={count}
+      />
     </main>
   );
 }
